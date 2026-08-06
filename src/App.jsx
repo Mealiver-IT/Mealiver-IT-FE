@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import './App.css'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+// Local dev: set VITE_API_BASE_URL in .env (see .env.example) to point at the backend directly.
+// Production (nginx container): left unset on purpose, so requests go to '/api/...' on the
+// same origin and nginx proxies them to the api container.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 function App() {
   const [status, setStatus] = useState('idle')

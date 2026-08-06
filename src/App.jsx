@@ -9,6 +9,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 function App() {
   const [status, setStatus] = useState('idle')
   const [response, setResponse] = useState('')
+  const [count, setCount] = useState(0)
 
   const pingApi = async () => {
     setStatus('loading')
@@ -37,6 +38,13 @@ function App() {
           <strong>{API_BASE_URL}/api/ping</strong> &rarr; {response}
         </p>
       )}
+
+      <hr />
+
+      <p>배포 확인용 카운터 (이 버튼이 보이면 새 배포가 반영된 것)</p>
+      <button type="button" onClick={() => setCount((c) => c + 1)}>
+        Count: {count}
+      </button>
     </main>
   )
 }

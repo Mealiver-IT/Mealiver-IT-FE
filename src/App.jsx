@@ -1,51 +1,34 @@
-import { useState } from 'react'
+import { Route, Routes } from 'react-router-dom'
 import './App.css'
+import { CartProvider } from './context/CartContext'
+import { EventProvider } from './context/EventContext'
+import BottomNav from './components/BottomNav'
+import HomePage from './pages/HomePage'
+import StorePage from './pages/StorePage'
+import CartPage from './pages/CartPage'
+import CheckoutPage from './pages/CheckoutPage'
+import MyPage from './pages/MyPage'
+import EventPage from './pages/EventPage'
 
-// Local dev: set VITE_API_BASE_URL in .env (see .env.example) to point at the backend directly.
-// Production (nginx container): left unset on purpose, so requests go to '/api/...' on the
-// same origin and nginx proxies them to the api container.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
-
+// 디자인 없이 버튼 배치만 확인하기 위한 저충실도 프로토타입.
+// 화면 흐름: 홈(가게목록) -> 가게(메뉴) -> 장바구니 -> 주문/결제, + 마이페이지 / 선착순 이벤트
 function App() {
-  const [status, setStatus] = useState('idle')
-  const [response, setResponse] = useState('')
-  const [count, setCount] = useState(0)
-
-  const pingApi = async () => {
-    setStatus('loading')
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/ping`)
-      const text = await res.text()
-      setResponse(text)
-      setStatus(res.ok ? 'success' : 'error')
-    } catch (err) {
-      setResponse(err.message)
-      setStatus('error')
-    }
-  }
-
   return (
-    <main className="app">
-      <h1>Mealiver-IT</h1>
-      <p>프론트엔드 &harr; 백엔드 연결 테스트용 페이지입니다.</p>
-
-      <button type="button" onClick={pingApi} disabled={status === 'loading'}>
-        {status === 'loading' ? 'Pinging...' : 'Ping API'}
-      </button>
-
-      {status !== 'idle' && (
-        <p className={`result ${status}`}>
-          <strong>{API_BASE_URL}/api/ping</strong> &rarr; {response}
-        </p>
-      )}
-
-      <hr />
-
-      <p>배포 확인용 카운터 (이 버튼이 보이면 새 배포가 반영된 것)</p>
-      <button type="button" onClick={() => setCount((c) => c + 1)}>
-        Count: {count}
-      </button>
-    </main>
+    <CartProvider>
+      <EventProvider>
+        <div className="phone-frame">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/store/:storeId" element={<StorePage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/mypage" element={<MyPage />} />
+            <Route path="/event/:eventId" element={<EventPage />} />
+          </Routes>
+          <BottomNav />
+        </div>
+      </EventProvider>
+    </CartProvider>
   )
 }
 

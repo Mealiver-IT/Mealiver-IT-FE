@@ -1,0 +1,151 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import TopBar from '../components/TopBar'
+import { useCart } from '../context/CartContext'
+import { myCoupons, paymentMethods, stores } from '../data/mockData'
+
+// 주문/결제 페이지
+// 대응: POST /api/cart/coupons(할인 계산), POST /api/orders(주문 생성)
+// 비고: 가게별 최소 주문금액 미달 시 결제 차단
+export default function CheckoutPage() {
+  const navigate = useNavigate()
+  const { storeId, storeName, items, appliedCoupon, subtotal, discount, totalPrice, applyCoupon, checkout } = useCart()
+  const [address, setAddress] = useState('')
+  const [request, setRequest] = useState('')
+  const [paymentMethodId, setPaymentMethodId] = useState(paymentMethods[0].id)
+  const [freeDeliveryAssist, setFreeDeliveryAssist] = useState(false)
+
+  const store = stores.find((s) => s.id === storeId)
+  const belowMinOrder = store ? subtotal < store.minOrderAmount : false
+
+  if (items.length === 0) {
+    return (
+      <>
+        <TopBar title="주문/결제" />
+        <div className="screen-content">
+          <p className="empty-text">장바구니가 비어 있습니다.</p>
+        </div>
+      </>
+    )
+  }
+
+  const handlePay = () => {
+    if (belowMinOrder) return
+    checkout({ address, paymentMethodId })
+    alert('주문이 완료되었습니다. (목데이터, 실제 결제 아님)')
+    navigate('/mypage')
+  }
+
+  return (
+    <>
+      <TopBar title="주문/결제" />
+      <div className="screen-content with-fixed-bottom">
+        <div className="box-flat">
+          <label className="field-label" htmlFor="address">
+            배달지 주소 입력
+          </label>
+          <input
+            id="address"
+            type="text"
+            className="search-input"
+            placeholder="배달지 주소 입력"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+        </div>
+
+        <div className="box-flat">
+          <label className="field-label" htmlFor="request">
+            요청사항
+          </label>
+          <textarea
+            id="request"
+            className="request-textarea"
+            placeholder="요청사항을 입력해 주세요"
+            value={request}
+            onChange={(e) => setRequest(e.target.value)}
+          />
+        </div>
+
+        <div className="box-flat">
+          <div className="field-label">주문 요약</div>
+          <div className="row-between">
+            <span>{storeName}</span>
+            <span>{items.reduce((sum, i) => sum + i.quantity, 0)}개</span>
+          </div>
+        </div>
+
+        <div className="box-flat">
+          <div className="field-label">쿠폰 선택</div>
+          <select
+            className="search-input"
+            value={appliedCoupon?.id ?? ''}
+            onChange={(e) => {
+              const coupon = myCoupons.find((c) => c.id === e.target.value)
+              applyCoupon(coupon ?? null)
+            }}
+          >
+            <option value="">쿠폰 선택 안 함</option>
+            {myCoupons.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="button"
+          className={`btn toggle-btn${freeDeliveryAssist ? ' active' : ''}`}
+          onClick={() => setFreeDeliveryAssist((v) => !v)}
+        >
+          배달비 할인 쿠폰 {freeDeliveryAssist ? '사용 중' : '사용 안 함'}
+        </button>
+
+        <div className="box-flat">
+          <div className="field-label">결제방법</div>
+          <div className="radio-group">
+            {paymentMethods.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className={`btn radio-btn${paymentMethodId === m.id ? ' active' : ''}`}
+                onClick={() => setPaymentMethodId(m.id)}
+              >
+                {paymentMethodId === m.id ? '● ' : '○ '}
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="box-flat summary-box">
+          <div className="row-between">
+            <span>주문금액</span>
+            <span>{subtotal.toLocaleString()}원</span>
+          </div>
+          <div className="row-between">
+            <span>할인</span>
+            <span>-{discount.toLocaleString()}원</span>
+          </div>
+          <div className="row-between summary-total">
+            <strong>총 결제금액</strong>
+            <strong>{totalPrice.toLocaleString()}원</strong>
+          </div>
+        </div>
+
+        {belowMinOrder && store && (
+          <p className="warning-text">
+            최소 주문금액 {store.minOrderAmount.toLocaleString()}원 미달로 결제할 수 없습니다.
+          </p>
+        )}
+      </div>
+
+      <div className="fixed-bottom-bar">
+        <button type="button" className="btn btn-block" disabled={belowMinOrder} onClick={handlePay}>
+          결제하기
+        </button>
+      </div>
+    </>
+  )
+}

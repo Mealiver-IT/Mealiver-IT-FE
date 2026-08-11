@@ -1,6 +1,5 @@
 import { NavLink } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
-import { couponEvent } from '../data/mockData'
 
 // 4탭 하단 네비게이션 - 버튼 배치 확인용, 실제 화면 캡처의 하단바(홈/이벤트/마이페이지/장바구니)를 재현
 export default function BottomNav() {
@@ -12,7 +11,7 @@ export default function BottomNav() {
       <NavLink to="/" end className={({ isActive }) => `bottom-nav-btn${isActive ? ' active' : ''}`}>
         홈
       </NavLink>
-      <NavLink to={`/event/${couponEvent.eventId}`} className={({ isActive }) => `bottom-nav-btn${isActive ? ' active' : ''}`}>
+      <NavLink to="/events" className={({ isActive }) => `bottom-nav-btn${isActive ? ' active' : ''}`}>
         이벤트
       </NavLink>
       <NavLink to="/cart" className={({ isActive }) => `bottom-nav-btn${isActive ? ' active' : ''}`}>

@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react'
+import { calcCouponDiscount } from '../utils/coupon'
 
 // 화면 간 상태 공유용 컨텍스트. 실제 API 연동 전까지는 로컬 state로 아래 엔드포인트를 흉내냅니다.
 //   GET    /api/cart              -> items, storeName, totalPrice
@@ -64,15 +65,7 @@ export function CartProvider({ children }) {
 
   const subtotal = useMemo(() => items.reduce((sum, i) => sum + i.price * i.quantity, 0), [items])
 
-  const discount = useMemo(() => {
-    if (!appliedCoupon) return 0
-    if (appliedCoupon.discountType === 'FIXED') return appliedCoupon.discountValue
-    if (appliedCoupon.discountType === 'RATE') {
-      const raw = Math.floor((subtotal * appliedCoupon.discountValue) / 100)
-      return appliedCoupon.maxDiscount ? Math.min(raw, appliedCoupon.maxDiscount) : raw
-    }
-    return 0
-  }, [appliedCoupon, subtotal])
+  const discount = useMemo(() => calcCouponDiscount(appliedCoupon, subtotal), [appliedCoupon, subtotal])
 
   const totalPrice = Math.max(subtotal - discount, 0)
 

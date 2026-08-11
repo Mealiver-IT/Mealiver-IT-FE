@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
-import { membership, benefits, orderHistory, myCoupons } from '../data/mockData'
+import { membership, benefits, orderHistory } from '../data/mockData'
+import { useWalletCoupons } from '../context/EventContext'
 
 // 마이페이지
 // 대응: GET /api/members/me/membership, GET /api/members/me/benefits,
 //       GET /api/orders, GET /api/members/me/coupons
 export default function MyPage() {
   const navigate = useNavigate()
+  const myCoupons = useWalletCoupons()
 
   const menuButtons = [
     { label: '주문 내역', onClick: () => alert(`주문 내역 ${orderHistory.length}건 (목데이터)`) },

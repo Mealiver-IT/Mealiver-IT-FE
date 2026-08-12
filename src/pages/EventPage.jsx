@@ -4,8 +4,8 @@ import { couponEvents, membership } from '../data/mockData'
 import { useEventCoupon } from '../context/EventContext'
 
 // 이벤트 상세 페이지(선착순 쿠폰 수령) - KAN-71
-// 대응: GET /api/coupon-events/{eventId}, GET /.../stock, POST /.../claim
-// API 연동 전 단계라 잔여수량/발급 상태는 EventContext의 로컬 state로 흉내냄
+// 대응: GET /api/campaigns/{campaignId}(상세, 구현됨), POST /api/campaigns/{campaignId}/coupons(발급, 구현됨)
+// claimCoupon은 실제 API를 먼저 시도하고 실패 시 로컬 mock으로 대체함 (EventContext 참고)
 export default function EventPage() {
   const { eventId } = useParams()
   const event = couponEvents.find((e) => e.eventId === eventId)
@@ -24,13 +24,13 @@ export default function EventPage() {
   const soldOut = remainingStock <= 0
   const stockRatio = Math.max(0, Math.min(100, Math.round((remainingStock / event.totalStock) * 100)))
 
-  const handleClaim = () => {
+  const handleClaim = async () => {
     if (claimed) return
     if (soldOut) {
       alert('선착순 쿠폰이 모두 소진되었습니다.')
       return
     }
-    claimCoupon()
+    await claimCoupon()
     alert('쿠폰이 발급되었습니다!')
   }
 

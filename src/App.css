@@ -193,14 +193,54 @@
   font-size: 0.8rem;
 }
 
-.event-banner {
+/* 잔여 수량 바 (이벤트 페이지) */
+.stock-bar {
+  border: 1px solid #999;
+  height: 10px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.stock-bar-fill {
+  height: 100%;
+  background: #999;
+}
+
+@media (prefers-color-scheme: dark) {
+  .stock-bar-fill {
+    background: #ccc;
+  }
+}
+
+/* 계급별 할인율 목록 (이벤트 페이지) */
+.tier-rate-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.tier-rate-row {
+  padding: 4px 0;
+}
+
+.tier-rate-row.my-tier {
+  font-weight: bold;
+}
+
+/* 이벤트 목록 페이지 */
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   width: 100%;
   border: 1px dashed #666;
   padding: 10px;
-  margin-bottom: 10px;
   text-align: left;
   background: transparent;
   color: inherit;
@@ -223,11 +263,6 @@
   }
 }
 
-.event-banner-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
 
 .store-list {
   display: flex;

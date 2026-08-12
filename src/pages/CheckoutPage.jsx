@@ -2,14 +2,19 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import { useCart } from '../context/CartContext'
-import { myCoupons, paymentMethods, stores } from '../data/mockData'
+import { useWalletCoupons } from '../context/EventContext'
+import { paymentMethods, stores } from '../data/mockData'
+import { calcCouponDiscount } from '../utils/coupon'
 
 // 주문/결제 페이지
 // 대응: POST /api/cart/coupons(할인 계산), POST /api/orders(주문 생성)
 // 비고: 가게별 최소 주문금액 미달 시 결제 차단
+// KAN-72: 쿠폰 선택(드롭다운) + 쿠폰별 할인 미리보기. 팀 논의 후 토글 UI 대신 드롭다운으로 확정.
+// 쿠폰 목록은 실제로 발급받은 쿠폰(useWalletCoupons)만 노출 — 이벤트에서 받기 전엔 안 보임
 export default function CheckoutPage() {
   const navigate = useNavigate()
   const { storeId, storeName, items, appliedCoupon, subtotal, discount, totalPrice, applyCoupon, checkout } = useCart()
+  const myCoupons = useWalletCoupons()
   const [address, setAddress] = useState('')
   const [request, setRequest] = useState('')
   const [paymentMethodId, setPaymentMethodId] = useState(paymentMethods[0].id)
@@ -76,22 +81,26 @@ export default function CheckoutPage() {
         </div>
 
         <div className="box-flat">
-          <div className="field-label">쿠폰 선택</div>
-          <select
-            className="search-input"
-            value={appliedCoupon?.id ?? ''}
-            onChange={(e) => {
-              const coupon = myCoupons.find((c) => c.id === e.target.value)
-              applyCoupon(coupon ?? null)
-            }}
-          >
-            <option value="">쿠폰 선택 안 함</option>
-            {myCoupons.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <div className="field-label">쿠폰 선택 ({myCoupons.length}장)</div>
+          {myCoupons.length === 0 ? (
+            <p className="empty-text">사용 가능한 쿠폰이 없습니다.</p>
+          ) : (
+            <select
+              className="search-input"
+              value={appliedCoupon?.id ?? ''}
+              onChange={(e) => {
+                const coupon = myCoupons.find((c) => c.id === e.target.value)
+                applyCoupon(coupon ?? null)
+              }}
+            >
+              <option value="">쿠폰 선택 안 함</option>
+              {myCoupons.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} (적용 시 -{calcCouponDiscount(c, subtotal).toLocaleString()}원)
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <button

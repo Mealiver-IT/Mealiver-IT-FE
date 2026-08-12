@@ -8,6 +8,7 @@ import StorePage from './pages/StorePage'
 import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
 import MyPage from './pages/MyPage'
+import EventListPage from './pages/EventListPage'
 import EventPage from './pages/EventPage'
 
 // 디자인 없이 버튼 배치만 확인하기 위한 저충실도 프로토타입.
@@ -23,6 +24,7 @@ function App() {
             <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/mypage" element={<MyPage />} />
+            <Route path="/events" element={<EventListPage />} />
             <Route path="/event/:eventId" element={<EventPage />} />
           </Routes>
           <BottomNav />

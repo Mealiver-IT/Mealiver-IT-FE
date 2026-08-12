@@ -96,21 +96,38 @@ export const benefits = [
 ]
 
 // GET /api/members/me/coupons
-export const myCoupons = [
-  { id: 'coupon-1', name: '선착순 5,000원 쿠폰', discountType: 'FIXED', discountValue: 5000 },
-  { id: 'coupon-2', name: '10% 할인 쿠폰', discountType: 'RATE', discountValue: 10, maxDiscount: 3000 },
-]
+// 이벤트로 받는 쿠폰(선착순)은 여기 포함하지 않음 — 발급 시점에 EventContext가 이 목록에 추가함.
+// 여기 있는 건 이벤트와 무관하게 이미 지급된(멤버십 혜택 등) 쿠폰.
+export const myCoupons = [{ id: 'coupon-2', name: '10% 할인 쿠폰', discountType: 'RATE', discountValue: 10, maxDiscount: 3000 }]
 
-// GET /api/coupon-events/{eventId}
-export const couponEvent = {
-  eventId: 'event-1',
-  title: '선착순 이벤트',
-  storeName: '바삭 치킨 하우스',
-  bannerText: '선착순 5,000원 쿠폰',
-  totalStock: 10000,
-  remainingStock: 3120,
-  discountByLevel: { 이등병: 5, 병장: 10, 원사: 20 },
-}
+// GET /api/coupon-events (목록), GET /api/coupon-events/{eventId} (상세)
+// rewardCoupon: 선착순 쿠폰 받기 성공 시 지급되는 쿠폰 (POST .../claim 응답에 해당, 클레임 전엔 결제 화면에 노출 안 됨)
+// campaignId: 실제 BE campaign.id(Long) 매핑용 — DB에 캠페인 시딩 스크립트가 없어서
+// 지금 어떤 ID가 실제로 존재하는지 확인 불가. 우선 1, 2로 가정. 확인되면 교체 필요.
+export const couponEvents = [
+  {
+    eventId: 'event-1',
+    campaignId: 1,
+    title: '선착순 이벤트',
+    storeName: '바삭 치킨 하우스',
+    bannerText: '선착순 5,000원 쿠폰',
+    totalStock: 10000,
+    remainingStock: 3120,
+    discountByLevel: { 이등병: 5, 병장: 10, 원사: 20 },
+    rewardCoupon: { id: 'coupon-event-1', name: '선착순 5,000원 쿠폰', discountType: 'FIXED', discountValue: 5000 },
+  },
+  {
+    eventId: 'event-2',
+    campaignId: 2,
+    title: '선착순 이벤트',
+    storeName: '맛있는 국밥집',
+    bannerText: '선착순 3,000원 쿠폰',
+    totalStock: 5000,
+    remainingStock: 812,
+    discountByLevel: { 이등병: 5, 병장: 10, 원사: 20 },
+    rewardCoupon: { id: 'coupon-event-2', name: '선착순 3,000원 쿠폰', discountType: 'FIXED', discountValue: 3000 },
+  },
+]
 
 // GET /api/orders
 export const orderHistory = [

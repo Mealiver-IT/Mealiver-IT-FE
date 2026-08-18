@@ -13,7 +13,8 @@ import { calcCouponDiscount } from '../utils/coupon'
 // 쿠폰 목록은 실제로 발급받은 쿠폰(useWalletCoupons)만 노출 — 이벤트에서 받기 전엔 안 보임
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { storeId, storeName, items, appliedCoupon, subtotal, discount, totalPrice, applyCoupon, checkout } = useCart()
+  const { storeId, storeName, items, appliedCoupon, subtotal, discount, totalPrice, applyCoupon, checkout, isCheckingOut } =
+    useCart()
   const myCoupons = useWalletCoupons()
   const [address, setAddress] = useState('')
   const [request, setRequest] = useState('')
@@ -35,9 +36,13 @@ export default function CheckoutPage() {
   }
 
   const handlePay = async () => {
-    if (belowMinOrder) return
-    const order = await checkout({ address, paymentMethodId })
-    alert(order.isMock ? '주문이 완료되었습니다. (mock 처리, 실제 결제 아님)' : '주문이 완료되었습니다.')
+    if (belowMinOrder || isCheckingOut) return
+    const result = await checkout({ address, paymentMethodId })
+    if (!result.ok) {
+      alert(result.message)
+      return
+    }
+    alert(result.order.isMock ? '주문이 완료되었습니다. (mock 처리, 실제 결제 아님)' : '주문이 완료되었습니다.')
     navigate('/mypage')
   }
 
@@ -151,8 +156,8 @@ export default function CheckoutPage() {
       </div>
 
       <div className="fixed-bottom-bar">
-        <button type="button" className="btn btn-block" disabled={belowMinOrder} onClick={handlePay}>
-          결제하기
+        <button type="button" className="btn btn-block" disabled={belowMinOrder || isCheckingOut} onClick={handlePay}>
+          {isCheckingOut ? '결제 처리 중...' : '결제하기'}
         </button>
       </div>
     </>

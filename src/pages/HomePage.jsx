@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { categories, stores } from '../data/mockData'
+import FoodIcon from '../components/FoodIcon'
+import ThemeToggleButton from '../components/ThemeToggleButton'
 
 // 음식점 고르는 페이지
 // 대응: GET /api/categories, GET /api/categories/{categoryId}/stores
@@ -16,9 +18,12 @@ export default function HomePage() {
         <button type="button" className="btn">
           📍 강남구 역삼동
         </button>
-        <button type="button" className="btn icon-btn">
-          🔍
-        </button>
+        <div className="row-between" style={{ gap: '6px' }}>
+          <button type="button" className="btn icon-btn">
+            🔍
+          </button>
+          <ThemeToggleButton />
+        </div>
       </div>
 
       <input type="text" className="search-input" placeholder="가게, 음식 검색" readOnly />
@@ -40,7 +45,9 @@ export default function HomePage() {
         {visibleStores.length === 0 && <p className="empty-text">해당 카테고리 가게가 없습니다.</p>}
         {visibleStores.map((s) => (
           <button key={s.id} type="button" className="list-item store-card" onClick={() => navigate(`/store/${s.id}`)}>
-            <div className="thumb-placeholder">이미지</div>
+            <div className="thumb-placeholder">
+              <FoodIcon name={s.icon} />
+            </div>
             <div className="store-card-info">
               <div className="store-card-name">
                 {s.name} {s.hasCoupon && <span className="badge">쿠폰</span>}

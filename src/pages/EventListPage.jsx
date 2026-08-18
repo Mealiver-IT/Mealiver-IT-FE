@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import { couponEvents } from '../data/mockData'
 import { useEventCoupon } from '../context/EventContext'
+import FoodIcon from '../components/FoodIcon'
 
 // 이벤트 목록 페이지 - 진행 중인 선착순 이벤트를 배너 목록으로 노출.
 // 배너 클릭 시 해당 이벤트 상세(/event/:eventId)로 이동.
@@ -32,7 +33,9 @@ function EventListItem({ event }) {
       className={`event-banner${claimed ? ' claimed' : ''}`}
       onClick={() => navigate(`/event/${event.eventId}`)}
     >
-      <div className="thumb-placeholder tall">이벤트 배너 이미지</div>
+      <div className="thumb-placeholder tall">
+        <FoodIcon name="coupon" />
+      </div>
       <div className="row-between">
         <strong>{event.storeName}</strong>
         {claimed && <span className="badge">발급완료</span>}

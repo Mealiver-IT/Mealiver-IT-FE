@@ -15,10 +15,13 @@ const initialEventState = Object.fromEntries(
 )
 
 // BE CouponIssueResponse -> FE 쿠폰 표시용 형태로 변환
+// issueId: 실제 BE coupon_issue PK. 주문 생성(POST /api/orders) 시 couponIssueId로 그대로 넘겨야 함.
+// mock 전용 쿠폰(기본 보유 쿠폰, API 실패 시 폴백 쿠폰)엔 이 필드가 없음 -> 실제 주문 API에는 못 넘김.
 function toFECoupon(issue) {
   return {
     id: `issue-${issue.id}`,
-    name: `쿠폰 (${issue.couponCode})`,
+    issueId: issue.id,
+    name: issue.campaignName ?? `쿠폰 (${issue.couponCode})`,
     discountType: issue.discountType,
     discountValue: Number(issue.discountValue),
     maxDiscount: issue.maxDiscountAmount != null ? Number(issue.maxDiscountAmount) : undefined,

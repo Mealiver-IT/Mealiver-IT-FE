@@ -7,7 +7,7 @@ import { paymentMethods, stores } from '../data/mockData'
 import { calcCouponDiscount } from '../utils/coupon'
 
 // 주문/결제 페이지
-// 대응: POST /api/cart/coupons(할인 계산), POST /api/orders(주문 생성)
+// 대응: POST /api/cart/coupons(할인 계산, 미연동/mock), POST /api/orders(주문 생성, 실제 연동함 — CartContext 참고)
 // 비고: 가게별 최소 주문금액 미달 시 결제 차단
 // KAN-72: 쿠폰 선택(드롭다운) + 쿠폰별 할인 미리보기. 팀 논의 후 토글 UI 대신 드롭다운으로 확정.
 // 쿠폰 목록은 실제로 발급받은 쿠폰(useWalletCoupons)만 노출 — 이벤트에서 받기 전엔 안 보임
@@ -34,10 +34,10 @@ export default function CheckoutPage() {
     )
   }
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (belowMinOrder) return
-    checkout({ address, paymentMethodId })
-    alert('주문이 완료되었습니다. (목데이터, 실제 결제 아님)')
+    const order = await checkout({ address, paymentMethodId })
+    alert(order.isMock ? '주문이 완료되었습니다. (mock 처리, 실제 결제 아님)' : '주문이 완료되었습니다.')
     navigate('/mypage')
   }
 

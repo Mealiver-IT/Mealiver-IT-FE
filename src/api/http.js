@@ -24,7 +24,13 @@ export async function apiFetch(path, { method = 'GET', headers = {}, withUser = 
 
   if (!res.ok) {
     const message = responseBody?.message ?? `요청 실패 (${res.status})`
-    throw new Error(message)
+    const error = new Error(message)
+    // BE 도메인 에러(ErrorResponse.java)는 { code, message } 형태로 옴 (예: SOLD_OUT, ALREADY_ISSUED,
+    // MEMBERSHIP_TIER_NOT_ELIGIBLE, CAMPAIGN_NOT_OPEN). 이 code가 있으면 "서버가 정상 응답했지만 요청이
+    // 거부된 것"이고, 없으면(네트워크 오류 등) BE 자체에 도달 못한 것 — 호출부가 이 둘을 구분해서
+    // 전자는 실제 사유를 안내하고, 후자만 mock 폴백으로 넘어가야 한다 (FR-FCFS-031, 08_개발표준 3절).
+    error.code = responseBody?.code
+    throw error
   }
   return responseBody?.data
 }

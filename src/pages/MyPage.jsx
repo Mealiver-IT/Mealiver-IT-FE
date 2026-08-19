@@ -30,7 +30,7 @@ export default function MyPage() {
       </div>
 
       <p className="empty-text">
-        다음 계급까지 주문 {membership.ordersUntilNextLevel}회 남음 (최근 30일 유효 주문 {membership.validOrderCountLast30Days}건)
+        다음 계급까지 주문 {membership.ordersUntilNextLevel}회 남음 (이번 달 유효 주문 {membership.validOrderCountThisMonth}건)
       </p>
 
       <div className="field-label">밀리버릿 혜택</div>

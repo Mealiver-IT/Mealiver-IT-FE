@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import { couponEvents, membership } from '../data/mockData'
 import { useEventCoupon } from '../context/EventContext'
+import FoodIcon from '../components/FoodIcon'
 
 // 이벤트 상세 페이지(선착순 쿠폰 수령) - KAN-71
 // 대응: GET /api/campaigns/{campaignId}(상세, 구현됨), POST /api/campaigns/{campaignId}/coupons(발급, 구현됨)
@@ -30,15 +31,17 @@ export default function EventPage() {
       alert('선착순 쿠폰이 모두 소진되었습니다.')
       return
     }
-    await claimCoupon()
-    alert('쿠폰이 발급되었습니다!')
+    const result = await claimCoupon()
+    alert(result.ok ? '쿠폰이 발급되었습니다!' : result.message)
   }
 
   return (
     <>
       <TopBar title="이벤트" />
       <div className="screen-content">
-        <div className="thumb-placeholder tall">이벤트 배너 이미지</div>
+        <div className="thumb-placeholder tall">
+          <FoodIcon name="coupon" />
+        </div>
 
         <div className="box-flat">
           <div className="row-between">

@@ -19,6 +19,7 @@ export const stores = [
     id: 'store-1',
     categoryId: 'korean',
     name: '김밥천국',
+    icon: 'gimbap',
     rating: 4.9,
     reviewCount: '2.1k+',
     deliveryFee: 2500,
@@ -29,6 +30,7 @@ export const stores = [
     id: 'store-2',
     categoryId: 'korean',
     name: '바삭 치킨 하우스',
+    icon: 'chicken',
     rating: 4.9,
     reviewCount: '2.1k+',
     deliveryFee: 2500,
@@ -39,6 +41,7 @@ export const stores = [
     id: 'store-3',
     categoryId: 'chinese',
     name: '맛있는 국밥집',
+    icon: 'ramen',
     rating: 4.9,
     reviewCount: '2.1k+',
     deliveryFee: 2500,
@@ -49,6 +52,7 @@ export const stores = [
     id: 'store-4',
     categoryId: 'japanese',
     name: '스시야',
+    icon: 'sushi',
     rating: 4.8,
     reviewCount: '900+',
     deliveryFee: 3000,
@@ -83,9 +87,11 @@ export const menusByStore = {
 }
 
 // GET /api/members/me/membership
+// 계급 산정 기준은 최근 30일 롤링이 아니라 "캘린더 월"(매월 1일 배치가 전월 1일~말일 집계) 확정 —
+// 09_기획서 6.2절 / 01_설계보완_검토안 0절. 필드명을 그 기준에 맞춰 둠.
 export const membership = {
   level: '병장',
-  validOrderCountLast30Days: 28,
+  validOrderCountThisMonth: 28,
   ordersUntilNextLevel: 2,
 }
 
@@ -104,6 +110,8 @@ export const myCoupons = [{ id: 'coupon-2', name: '10% 할인 쿠폰', discountT
 // rewardCoupon: 선착순 쿠폰 받기 성공 시 지급되는 쿠폰 (POST .../claim 응답에 해당, 클레임 전엔 결제 화면에 노출 안 됨)
 // campaignId: 실제 BE campaign.id(Long) 매핑용 — DB에 캠페인 시딩 스크립트가 없어서
 // 지금 어떤 ID가 실제로 존재하는지 확인 불가. 우선 1, 2로 가정. 확인되면 교체 필요.
+// discountByLevel: 04_아키텍처 6.1절 TierDiscountPolicy(BE 코드에도 동일하게 구현됨) 확정값 그대로 —
+// 이등병·일병 10% / 상병 30% / 병장 50%. "원사"는 이 프로젝트의 4단계 계급(이등병/일병/상병/병장)에 없는 값이라 제거.
 export const couponEvents = [
   {
     eventId: 'event-1',
@@ -113,7 +121,7 @@ export const couponEvents = [
     bannerText: '선착순 5,000원 쿠폰',
     totalStock: 10000,
     remainingStock: 3120,
-    discountByLevel: { 이등병: 5, 병장: 10, 원사: 20 },
+    discountByLevel: { 이등병: 10, 일병: 10, 상병: 30, 병장: 50 },
     rewardCoupon: { id: 'coupon-event-1', name: '선착순 5,000원 쿠폰', discountType: 'FIXED', discountValue: 5000 },
   },
   {
@@ -124,7 +132,7 @@ export const couponEvents = [
     bannerText: '선착순 3,000원 쿠폰',
     totalStock: 5000,
     remainingStock: 812,
-    discountByLevel: { 이등병: 5, 병장: 10, 원사: 20 },
+    discountByLevel: { 이등병: 10, 일병: 10, 상병: 30, 병장: 50 },
     rewardCoupon: { id: 'coupon-event-2', name: '선착순 3,000원 쿠폰', discountType: 'FIXED', discountValue: 3000 },
   },
 ]

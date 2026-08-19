@@ -15,10 +15,13 @@ const initialEventState = Object.fromEntries(
 )
 
 // BE CouponIssueResponse -> FE 쿠폰 표시용 형태로 변환
+// issueId: 실제 BE coupon_issue PK. 주문 생성(POST /api/orders) 시 couponIssueId로 그대로 넘겨야 함.
+// mock 전용 쿠폰(기본 보유 쿠폰, API 실패 시 폴백 쿠폰)엔 이 필드가 없음 -> 실제 주문 API에는 못 넘김.
 function toFECoupon(issue) {
   return {
     id: `issue-${issue.id}`,
-    name: `쿠폰 (${issue.couponCode})`,
+    issueId: issue.id,
+    name: issue.campaignName ?? `쿠폰 (${issue.couponCode})`,
     discountType: issue.discountType,
     discountValue: Number(issue.discountValue),
     maxDiscount: issue.maxDiscountAmount != null ? Number(issue.maxDiscountAmount) : undefined,
@@ -48,9 +51,13 @@ export function EventProvider({ children }) {
       })
   }, [])
 
+  // 반환값: { ok: true } 성공(실제 발급 또는 BE 미연결 시 mock 폴백) / { ok: false, code, message } BE가
+  // 정상 응답했지만 거부한 경우(품절/중복수령/등급미달/미오픈 등, FR-FCFS-031). 호출부(EventPage)가 이 둘을
+  // 구분해서 사용자에게 실제 사유를 보여줘야 한다 — 전부 "성공"으로 뭉개면 등급 미달 요청도 발급된 것처럼
+  // 보이는 오탐이 생긴다.
   const claimCoupon = async (eventId) => {
     const current = eventStates[eventId]
-    if (!current || current.claimed || current.remainingStock <= 0) return false
+    if (!current || current.claimed || current.remainingStock <= 0) return { ok: false, message: '이미 처리된 요청입니다.' }
     const event = couponEvents.find((e) => e.eventId === eventId)
 
     try {
@@ -62,10 +69,15 @@ export function EventProvider({ children }) {
         [eventId]: { remainingStock: Math.max(prev[eventId].remainingStock - 1, 0), claimed: true },
       }))
       setWalletCoupons((prev) => addCouponIfNew(prev, toFECoupon(issue)))
-      return true
+      return { ok: true }
     } catch (err) {
-      // BE 미연결/미구현/캠페인ID 불일치 등 -> 로컬 mock으로 대체 (데모용 폴백)
-      console.warn(`[EventContext] 실제 발급 API 실패, mock으로 대체 처리: ${err.message}`)
+      if (err.code) {
+        // BE가 실제로 응답했고, 정당한 사유로 거부한 것 -> mock으로 눙치지 말고 사유 그대로 전달
+        console.warn(`[EventContext] 발급 거부: ${err.code} - ${err.message}`)
+        return { ok: false, code: err.code, message: err.message }
+      }
+      // code가 없다 = BE에 아예 도달하지 못함(미기동/네트워크 오류/캠페인ID 불일치 등) -> 로컬 mock으로 대체 (데모용 폴백)
+      console.warn(`[EventContext] 발급 API 연결 실패, mock으로 대체 처리: ${err.message}`)
       setEventStates((prev) => ({
         ...prev,
         [eventId]: { remainingStock: Math.max(prev[eventId].remainingStock - 1, 0), claimed: true },
@@ -73,7 +85,7 @@ export function EventProvider({ children }) {
       if (event?.rewardCoupon) {
         setWalletCoupons((prev) => addCouponIfNew(prev, event.rewardCoupon))
       }
-      return true
+      return { ok: true }
     }
   }
 

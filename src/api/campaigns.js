@@ -13,6 +13,14 @@ export function fetchCampaigns() {
   return apiFetch('/api/campaigns')
 }
 
+// GET /api/campaigns/{campaignId}/stock — 선착순 잔여 수량 조회 (구현 완료, 인증 불필요).
+// 응답: { campaignId, totalStock, remainingStock, status, soldOut } — soldOut은 서버가 이미 계산해서 줌
+// (remainingStock <= 0를 프론트에서 다시 계산할 필요 없음). EventContext가 이걸 주기적으로 폴링해서
+// "실시간으로 줄어드는" 재고 카운트다운을 흉내낸다(진짜 SSE/WebSocket 푸시는 아직 없음).
+export function fetchCampaignStock(campaignId) {
+  return apiFetch(`/api/campaigns/${campaignId}/stock`)
+}
+
 // POST /api/campaigns/{campaignId}/coupons — 선착순 쿠폰 발급(claim).
 // Idempotency-Key 필수: 같은 키로 재요청해도 같은 결과가 나와야 함(멱등성) -> 요청마다 새 키 발급.
 export function claimCampaignCoupon(campaignId) {

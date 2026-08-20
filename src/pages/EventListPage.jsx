@@ -24,8 +24,7 @@ export default function EventListPage() {
 
 function EventListItem({ event }) {
   const navigate = useNavigate()
-  const { claimed, remainingStock } = useEventCoupon(event.eventId)
-  const soldOut = remainingStock <= 0
+  const { claimed, soldOut } = useEventCoupon(event.eventId)
 
   return (
     <button

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import { useCart } from '../context/CartContext'
-import { useWalletCoupons } from '../context/EventContext'
+import { useWalletCoupons, useWalletCouponActions } from '../context/EventContext'
 import { paymentMethods, stores } from '../data/mockData'
 import { calcCouponDiscount } from '../utils/coupon'
 
@@ -16,6 +16,7 @@ export default function CheckoutPage() {
   const { storeId, storeName, items, appliedCoupon, subtotal, discount, totalPrice, applyCoupon, checkout, isCheckingOut } =
     useCart()
   const myCoupons = useWalletCoupons()
+  const { removeCouponFromWallet } = useWalletCouponActions()
   const [address, setAddress] = useState('')
   const [request, setRequest] = useState('')
   const [paymentMethodId, setPaymentMethodId] = useState(paymentMethods[0].id)
@@ -41,6 +42,10 @@ export default function CheckoutPage() {
     if (!result.ok) {
       alert(result.message)
       return
+    }
+    // 실제(mock 아님) 주문이 쿠폰과 함께 성공했을 때만 지갑에서 지운다 — BE가 그 쿠폰을 실제로 USED 처리했을 때만.
+    if (!result.order.isMock && result.order.couponIssueId) {
+      removeCouponFromWallet(result.order.coupon.id)
     }
     alert(result.order.isMock ? '주문이 완료되었습니다. (mock 처리, 실제 결제 아님)' : '주문이 완료되었습니다.')
     navigate('/mypage')

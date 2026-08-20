@@ -39,7 +39,7 @@ export const stores = [
   },
   {
     id: 'store-3',
-    categoryId: 'chinese',
+    categoryId: 'korean',
     name: '맛있는 국밥집',
     icon: 'ramen',
     rating: 4.9,
@@ -86,19 +86,20 @@ export const menusByStore = {
   ],
 }
 
-// GET /api/members/me/membership
-// 계급 산정 기준은 최근 30일 롤링이 아니라 "캘린더 월"(매월 1일 배치가 전월 1일~말일 집계) 확정 —
-// 09_기획서 6.2절 / 01_설계보완_검토안 0절. 필드명을 그 기준에 맞춰 둠.
-export const membership = {
-  level: '병장',
-  validOrderCountThisMonth: 28,
-  ordersUntilNextLevel: 2,
-}
+// GET /api/members/me/membership — 실제 응답: { tier: 'PRIVATE'|'PFC'|'CORPORAL'|'SERGEANT', tierCalculatedAt }.
+// 2026-08-20 백엔드 가이드: validOrderCountThisMonth/ordersUntilNextLevel 같은 주문수 필드는 BE에
+// 아예 없고 추가할 계획도 없어서(완료 주문의 completed_at이 실제 주문 API로는 안 채워지는 별개 이슈 때문에
+// 이번엔 뺀 것) MyPage의 "다음 등급까지 N건" UI 자체를 없앴다. 여기 있는 건 BE 미연결 시 폴백용 기본 계급뿐.
+export const DEFAULT_MEMBERSHIP_TIER = 'SERGEANT'
 
-// GET /api/members/me/benefits
+// GET /api/members/me/benefits — 실제 응답은 쿠폰함(GET /api/members/me/coupons)과 완전히 동일한 배열
+// 모양이라({id, couponCode, campaignName, discountType, discountValue, maxDiscountAmount, ...}),
+// title/desc를 안 주고 discountType+discountValue로 프론트가 문구를 조합해야 한다
+// (EventContext.toFECoupon + utils/coupon.formatDiscountDetail 재사용). 아래는 BE 미연결 시 폴백용 mock —
+// 같은 모양(discountType/discountValue)으로 맞춰뒀다.
 export const benefits = [
-  { id: 'benefit-1', title: '무료배달 쿠폰', desc: '병장 등급 전용, 매일 자동 지급되는 무료배달 쿠폰' },
-  { id: 'benefit-2', title: '20% 할인 쿠폰', desc: '주문 시 바로 사용할 수 있는 할인 쿠폰' },
+  { id: 'benefit-1', name: '무료배달 쿠폰', discountType: 'FIXED', discountValue: 0 },
+  { id: 'benefit-2', name: '20% 할인 쿠폰', discountType: 'RATE', discountValue: 20 },
 ]
 
 // GET /api/members/me/coupons
@@ -112,6 +113,8 @@ export const myCoupons = [{ id: 'coupon-2', name: '10% 할인 쿠폰', discountT
 // 지금 어떤 ID가 실제로 존재하는지 확인 불가. 우선 1, 2로 가정. 확인되면 교체 필요.
 // discountByLevel: 04_아키텍처 6.1절 TierDiscountPolicy(BE 코드에도 동일하게 구현됨) 확정값 그대로 —
 // 이등병·일병 10% / 상병 30% / 병장 50%. "원사"는 이 프로젝트의 4단계 계급(이등병/일병/상병/병장)에 없는 값이라 제거.
+// 키를 한글 대신 BE 멤버십 계급 enum(PRIVATE/PFC/CORPORAL/SERGEANT)으로 둠 — GET /api/members/me/membership이
+// 이 enum으로 응답하므로(2026-08-20 백엔드 가이드), 화면 표시할 때만 utils/membership.tierLabel()로 한글 변환.
 export const couponEvents = [
   {
     eventId: 'event-1',
@@ -121,7 +124,7 @@ export const couponEvents = [
     bannerText: '선착순 5,000원 쿠폰',
     totalStock: 10000,
     remainingStock: 3120,
-    discountByLevel: { 이등병: 10, 일병: 10, 상병: 30, 병장: 50 },
+    discountByLevel: { PRIVATE: 10, PFC: 10, CORPORAL: 30, SERGEANT: 50 },
     rewardCoupon: { id: 'coupon-event-1', name: '선착순 5,000원 쿠폰', discountType: 'FIXED', discountValue: 5000 },
   },
   {
@@ -132,7 +135,7 @@ export const couponEvents = [
     bannerText: '선착순 3,000원 쿠폰',
     totalStock: 5000,
     remainingStock: 812,
-    discountByLevel: { 이등병: 10, 일병: 10, 상병: 30, 병장: 50 },
+    discountByLevel: { PRIVATE: 10, PFC: 10, CORPORAL: 30, SERGEANT: 50 },
     rewardCoupon: { id: 'coupon-event-2', name: '선착순 3,000원 쿠폰', discountType: 'FIXED', discountValue: 3000 },
   },
 ]

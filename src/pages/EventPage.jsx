@@ -1,16 +1,19 @@
 import { useParams } from 'react-router-dom'
 import TopBar from '../components/TopBar'
-import { couponEvents, membership } from '../data/mockData'
-import { useEventCoupon } from '../context/EventContext'
+import { couponEvents } from '../data/mockData'
+import { useEventCoupon, useMembershipTier } from '../context/EventContext'
+import { tierLabel } from '../utils/membership'
 import FoodIcon from '../components/FoodIcon'
 
 // 이벤트 상세 페이지(선착순 쿠폰 수령) - KAN-71
-// 대응: GET /api/campaigns/{campaignId}(상세, 구현됨), POST /api/campaigns/{campaignId}/coupons(발급, 구현됨)
+// 대응: GET /api/campaigns/{campaignId}(상세, 구현됨 - 관리자 필드 노출 이슈로 미사용, mock 메타데이터 유지),
+//       GET /api/campaigns/{campaignId}/stock(잔여수량 폴링), POST /api/campaigns/{campaignId}/coupons(발급)
 // claimCoupon은 실제 API를 먼저 시도하고 실패 시 로컬 mock으로 대체함 (EventContext 참고)
 export default function EventPage() {
   const { eventId } = useParams()
   const event = couponEvents.find((e) => e.eventId === eventId)
-  const { claimed, remainingStock, claimCoupon } = useEventCoupon(eventId)
+  const { claimed, remainingStock, soldOut, claimCoupon } = useEventCoupon(eventId)
+  const membershipTier = useMembershipTier()
 
   if (!event) {
     return (
@@ -21,8 +24,7 @@ export default function EventPage() {
     )
   }
 
-  const myDiscountRate = event.discountByLevel[membership.level] ?? 0
-  const soldOut = remainingStock <= 0
+  const myDiscountRate = event.discountByLevel[membershipTier] ?? 0
   const stockRatio = Math.max(0, Math.min(100, Math.round((remainingStock / event.totalStock) * 100)))
 
   const handleClaim = async () => {
@@ -65,10 +67,10 @@ export default function EventPage() {
           <div className="field-label">계급별 할인율</div>
           <div className="tier-rate-list">
             {Object.entries(event.discountByLevel).map(([tier, rate]) => (
-              <div key={tier} className={`row-between tier-rate-row${tier === membership.level ? ' my-tier' : ''}`}>
+              <div key={tier} className={`row-between tier-rate-row${tier === membershipTier ? ' my-tier' : ''}`}>
                 <span>
-                  {tier}
-                  {tier === membership.level ? ' (내 계급)' : ''}
+                  {tierLabel(tier)}
+                  {tier === membershipTier ? ' (내 계급)' : ''}
                 </span>
                 <span>{rate}%</span>
               </div>
@@ -77,8 +79,8 @@ export default function EventPage() {
         </div>
 
         <p className="empty-text">
-          내 계급({membership.level}) 할인율은 <strong>{myDiscountRate}%</strong>가 적용됩니다. 유의사항: 1인 1회 발급,
-          발급 후 7일 이내 사용, 행사 종료 시 잔여 쿠폰 자동 소멸.
+          내 계급({tierLabel(membershipTier)}) 할인율은 <strong>{myDiscountRate}%</strong>가 적용됩니다. 유의사항: 1인
+          1회 발급, 발급 후 7일 이내 사용, 행사 종료 시 잔여 쿠폰 자동 소멸.
         </p>
 
         <button

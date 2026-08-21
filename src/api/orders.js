@@ -1,10 +1,11 @@
 import { apiFetch } from './http'
+import { generateIdempotencyKey } from '../utils/uuid'
 
 // POST /api/orders — 주문 생성(=결제 완료 처리). 계급 산정용 결제 이력을 남기는 용도라
 // 가게/메뉴 정보는 안 받고 orderAmount/paidAmount/couponIssueId만 받음(BE OrderCreateRequest 기준).
 // couponIssueId를 넘기면 BE가 해당 쿠폰을 USED로 전이시킴 -> 실제 발급받은 쿠폰(issueId 있는 것)만 넘겨야 함.
 export function createOrder({ orderAmount, paidAmount, couponIssueId }) {
-  const idempotencyKey = crypto.randomUUID()
+  const idempotencyKey = generateIdempotencyKey()
   return apiFetch('/api/orders', {
     method: 'POST',
     withUser: true,
@@ -20,7 +21,7 @@ export function createOrder({ orderAmount, paidAmount, couponIssueId }) {
 // 자체가 없어서(무시당함) 제거함.
 // withUser: true 추가(2026-08-20 백엔드 가이드) — 이번 변경과 무관하게 원래 있던 누락이었음.
 export function cancelOrder(orderId) {
-  const idempotencyKey = crypto.randomUUID()
+  const idempotencyKey = generateIdempotencyKey()
   return apiFetch(`/api/orders/${orderId}/cancel`, {
     method: 'PATCH',
     withUser: true,

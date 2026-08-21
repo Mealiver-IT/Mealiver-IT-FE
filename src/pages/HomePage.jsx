@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { categories, stores } from '../data/mockData'
 import FoodIcon from '../components/FoodIcon'
 import ThemeToggleButton from '../components/ThemeToggleButton'
+import logo from '../assets/logo.png'
 
 // 음식점 고르는 페이지
 // 대응: GET /api/categories, GET /api/categories/{categoryId}/stores
@@ -14,16 +15,18 @@ export default function HomePage() {
 
   return (
     <div className="screen-content">
+      <div className="brand-row">
+        <img src={logo} alt="밀리버릿 로고" className="brand-logo" />
+        <ThemeToggleButton />
+      </div>
+
       <div className="row-between box-flat">
         <button type="button" className="btn">
           📍 강남구 역삼동
         </button>
-        <div className="row-between" style={{ gap: '6px' }}>
-          <button type="button" className="btn icon-btn">
-            🔍
-          </button>
-          <ThemeToggleButton />
-        </div>
+        <button type="button" className="btn icon-btn">
+          🔍
+        </button>
       </div>
 
       <input type="text" className="search-input" placeholder="가게, 음식 검색" readOnly />

@@ -1,25 +1,77 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { couponEvents, myCoupons as defaultCoupons, DEFAULT_MEMBERSHIP_TIER } from '../data/mockData'
-import { claimCampaignCoupon, fetchCampaignStock } from '../api/campaigns'
+import { couponEvents as mockCouponEvents, myCoupons as defaultCoupons, DEFAULT_MEMBERSHIP_TIER } from '../data/mockData'
+import { claimCampaignCoupon, fetchCampaignStock, fetchCampaigns } from '../api/campaigns'
 import { fetchMyCoupons } from '../api/coupons'
 import { fetchMembership } from '../api/membership'
+import { RATE_DISCOUNT_BY_TIER } from '../utils/membership'
 
-// 선착순 이벤트 쿠폰 발급 상태 - 이벤트별(eventId)로 잔여수량/발급여부를 관리.
-// 대응: GET /api/campaigns/{campaignId}/stock(구현됨, 폴링으로 사용), POST /api/campaigns/{campaignId}/coupons(구현됨)
-// 실제 API를 먼저 시도하고, 실패하면(BE 미기동/네트워크 오류/캠페인 ID 불일치 등) 기존 로컬 mock 동작으로
-// 대체함 -> BE가 떠 있으면 진짜로 연동되고, 없으면 데모용 프로토타입으로 계속 동작.
+// 이벤트(선착순 캠페인) 목록/상태 관리 - 실제 DB 캠페인을 GET /api/campaigns로 불러와 이벤트 목록/상세
+// 화면에 노출한다. 실패하면(BE 미기동 등) 기존 mock 이벤트 2개로 대체 — 데모 연속성 유지.
+//
+// ⚠️ 임시 필터 (2026-08-20 팀 확인): 팀 공유 DB에 부하테스트/오염데이터 검증용 캠페인이 대량으로
+// 섞여 있어서(phase1-*, phase2-*, DIRTY_* 등, id 17번 이후 대부분), 정상적으로 등록된 캠페인만
+// 하드코딩으로 걸러낸다(id 2~16, id 1은 deploy-verify-campaign). 캠페인 테이블 자체엔 "정상/오염"을
+// 구분하는 필드가 없어서 ID 범위로 거르는 것 말고는 방법이 없다 — 데이터 정리가 끝나면 이 필터를 지우면 된다.
+//
+// status는 여기서 필터링하지 않는다 — CLOSED/READY 캠페인도 "마감"/"오픈 예정" 상태로 목록에 그대로
+// 노출한다(이벤트 기간 안이면 마감됐다는 사실 자체도 정보다, 그냥 안 보이게 숨기면 안 됨).
+// status는 정적 메타데이터가 아니라 eventStates에 넣어서 재고와 같이 폴링으로 계속 갱신한다 —
+// 누가 캠페인을 READY→OPEN으로 바꾸면 새로고침 없이도 화면에 반영되도록.
+const CLEAN_CAMPAIGN_ID_MIN = 2
+const CLEAN_CAMPAIGN_ID_MAX = 16
+function isCleanCampaignId(id) {
+  return id >= CLEAN_CAMPAIGN_ID_MIN && id <= CLEAN_CAMPAIGN_ID_MAX
+}
+
+// BE CampaignResponse -> FE 이벤트 카드 표시용 형태.
+// BE엔 "가게" 개념이 없어서(계급 산정용 최소 스키마) 캠페인명을 그대로 가게명 자리에 쓴다.
+// RATE 타입은 캠페인 자체의 discountValue를 화면에 안 쓴다 — 실제 적용 할인율은 발급 시점
+// 유저 계급으로 결정되는 고정 정책(RATE_DISCOUNT_BY_TIER, TierDiscountPolicy와 동일)이라서다.
+function toFEEvent(campaign) {
+  const coupon = campaign.coupon ?? {}
+  const bannerText =
+    coupon.discountType === 'FIXED'
+      ? `선착순 ${Number(coupon.discountValue).toLocaleString()}원 쿠폰`
+      : '선착순 계급별 할인 쿠폰'
+  return {
+    eventId: String(campaign.id),
+    campaignId: campaign.id,
+    storeName: campaign.name,
+    bannerText,
+    totalStock: campaign.totalStock,
+    minMembershipTier: campaign.minMembershipTier ?? null,
+    discountType: coupon.discountType,
+    discountValue: coupon.discountValue != null ? Number(coupon.discountValue) : null,
+    minOrderAmount: coupon.minOrderAmount != null ? Number(coupon.minOrderAmount) : null,
+    maxDiscountAmount: coupon.maxDiscountAmount != null ? Number(coupon.maxDiscountAmount) : null,
+  }
+}
+
+// mock couponEvents(BE 미연결 시 폴백)도 같은 shape으로 맞춘다 — discountByLevel은 이제 안 쓰고
+// discountType/discountValue 기준으로 통일.
+function mockEventToFEEvent(event) {
+  return {
+    eventId: event.eventId,
+    campaignId: event.campaignId,
+    storeName: event.storeName,
+    bannerText: event.bannerText,
+    totalStock: event.totalStock,
+    minMembershipTier: null,
+    discountType: event.rewardCoupon?.discountType ?? 'FIXED',
+    discountValue: event.rewardCoupon?.discountValue ?? 0,
+    minOrderAmount: null,
+    maxDiscountAmount: null,
+    _mockRemainingStock: event.remainingStock,
+    _mockRewardCoupon: event.rewardCoupon,
+  }
+}
 
 const EventContext = createContext(null)
-
-const initialEventState = Object.fromEntries(
-  couponEvents.map((e) => [e.eventId, { remainingStock: e.remainingStock, claimed: false, soldOut: e.remainingStock <= 0 }]),
-)
 
 // BE CouponIssueResponse -> FE 쿠폰 표시용 형태로 변환.
 // GET /api/members/me/benefits 응답도 완전히 같은 모양이라(2026-08-20 백엔드 가이드) 여기서 export해서
 // MyPage 혜택 목록에서도 재사용한다.
 // issueId: 실제 BE coupon_issue PK. 주문 생성(POST /api/orders) 시 couponIssueId로 그대로 넘겨야 함.
-// mock 전용 쿠폰(기본 보유 쿠폰, API 실패 시 폴백 쿠폰)엔 이 필드가 없음 -> 실제 주문 API에는 못 넘김.
 export function toFECoupon(issue) {
   return {
     id: `issue-${issue.id}`,
@@ -44,14 +96,51 @@ function decrementLocally(prev, eventId) {
 }
 
 export function EventProvider({ children }) {
-  const [eventStates, setEventStates] = useState(initialEventState)
+  const [events, setEvents] = useState([]) // 이벤트 메타데이터(캠페인 목록) - 실제 API 또는 mock 폴백
+  const [eventStates, setEventStates] = useState({}) // eventId -> { remainingStock, claimed, soldOut }
+  const [eventsFetchFailed, setEventsFetchFailed] = useState(false)
   const [walletCoupons, setWalletCoupons] = useState(defaultCoupons)
   const [membershipTier, setMembershipTier] = useState(DEFAULT_MEMBERSHIP_TIER)
 
-  // 마운트 시 실제 보유 쿠폰 조회 시도 (GET /api/members/me/coupons).
-  // 성공하면 기본(mock) 쿠폰 + 실제 발급받은 쿠폰을 합쳐서 보여줌. 실패하면 기본 mock 지갑 그대로 유지.
+  // 마운트 시 실제 캠페인 목록 조회 (GET /api/campaigns). 성공하면 정상 캠페인(2~16번, 위 주석 참고)만
+  // 걸러서 이벤트 목록으로 쓰고, 실패하면(BE 미연결 등) 기존 mock 이벤트 2개로 대체한다.
   useEffect(() => {
-    fetchMyCoupons()
+    fetchCampaigns()
+      .then((campaigns) => {
+        const clean = (Array.isArray(campaigns) ? campaigns : []).filter((c) => isCleanCampaignId(c.id))
+        const mapped = clean.map(toFEEvent)
+        setEvents(mapped)
+        setEventStates(
+          Object.fromEntries(
+            clean.map((c) => [
+              String(c.id),
+              { remainingStock: c.remainingStock, claimed: false, soldOut: c.remainingStock <= 0, status: c.status },
+            ]),
+          ),
+        )
+      })
+      .catch((err) => {
+        console.warn('[EventContext] 캠페인 목록 조회 실패, mock 이벤트로 대체:', err.message)
+        const mapped = mockCouponEvents.map(mockEventToFEEvent)
+        setEvents(mapped)
+        setEventStates(
+          Object.fromEntries(
+            mapped.map((e) => [
+              e.eventId,
+              { remainingStock: e._mockRemainingStock, claimed: false, soldOut: e._mockRemainingStock <= 0, status: 'OPEN' },
+            ]),
+          ),
+        )
+        setEventsFetchFailed(true)
+      })
+  }, [])
+
+  // GET /api/members/me/coupons를 다시 불러와 지갑을 서버 기준으로 맞춘다.
+  // "지금 실제로 쓸 수 있는(ISSUED) 쿠폰"만 내려주는 API라, 취소로 되돌아온 쿠폰이 있으면 여기서 다시 잡힌다.
+  // 이번 세션에 만든 주문이 아니어서(couponIssueId를 몰라서) restoreCouponToWallet으로 못 되돌리는 경우의
+  // 안전망 — 새로고침해야만 보이던 걸 취소 직후에 바로 보이게 하려고 추가함.
+  const refreshWalletCoupons = () => {
+    return fetchMyCoupons()
       .then((issues) => {
         if (Array.isArray(issues) && issues.length > 0) {
           setWalletCoupons((prev) => issues.reduce((acc, issue) => addCouponIfNew(acc, toFECoupon(issue)), prev))
@@ -60,6 +149,12 @@ export function EventProvider({ children }) {
       .catch((err) => {
         console.warn('[EventContext] 보유 쿠폰 API 조회 실패, mock 데이터 유지:', err.message)
       })
+  }
+
+  // 마운트 시 1회 실행
+  useEffect(() => {
+    refreshWalletCoupons()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 마운트 시 실제 멤버십 계급 조회 시도 (GET /api/members/me/membership). 실패하면 mock 기본 계급 유지.
@@ -73,17 +168,19 @@ export function EventProvider({ children }) {
       })
   }, [])
 
+  const findEvent = (eventId) => events.find((e) => e.eventId === eventId)
+
   // GET /api/campaigns/{campaignId}/stock 폴링 — useEventCoupon을 쓰는 화면(이벤트 목록/상세)이
   // 떠 있는 동안 주기적으로 호출돼 잔여 수량을 서버 값으로 갱신한다. 실패해도 조용히 무시하고
   // 마지막으로 알고 있던 값(로컬 mock 또는 이전 폴링 값)을 유지 — 데모 연속성을 위해 에러를 화면에 안 띄움.
   const refreshStock = async (eventId) => {
-    const event = couponEvents.find((e) => e.eventId === eventId)
-    if (!event) return
+    const event = findEvent(eventId)
+    if (!event || eventsFetchFailed) return // mock 폴백 상태에선 폴링할 실제 캠페인이 없음
     try {
       const stock = await fetchCampaignStock(event.campaignId)
       setEventStates((prev) => ({
         ...prev,
-        [eventId]: { ...prev[eventId], remainingStock: stock.remainingStock, soldOut: stock.soldOut },
+        [eventId]: { ...prev[eventId], remainingStock: stock.remainingStock, soldOut: stock.soldOut, status: stock.status },
       }))
     } catch (err) {
       console.warn(`[EventContext] 재고 폴링 실패(eventId=${eventId}): ${err.message}`)
@@ -96,8 +193,11 @@ export function EventProvider({ children }) {
   // 보이는 오탐이 생긴다.
   const claimCoupon = async (eventId) => {
     const current = eventStates[eventId]
-    if (!current || current.claimed || current.remainingStock <= 0) return { ok: false, message: '이미 처리된 요청입니다.' }
-    const event = couponEvents.find((e) => e.eventId === eventId)
+    if (!current || current.claimed || current.remainingStock <= 0 || current.status !== 'OPEN') {
+      return { ok: false, message: '이미 처리된 요청입니다.' }
+    }
+    const event = findEvent(eventId)
+    if (!event) return { ok: false, message: '이벤트 정보를 찾을 수 없습니다.' }
 
     try {
       // 실제 API 시도: POST /api/campaigns/{campaignId}/coupons
@@ -115,14 +215,21 @@ export function EventProvider({ children }) {
       // code가 없다 = BE에 아예 도달하지 못함(미기동/네트워크 오류/캠페인ID 불일치 등) -> 로컬 mock으로 대체 (데모용 폴백)
       console.warn(`[EventContext] 발급 API 연결 실패, mock으로 대체 처리: ${err.message}`)
       setEventStates((prev) => ({ ...prev, [eventId]: decrementLocally(prev, eventId) }))
-      if (event?.rewardCoupon) {
-        setWalletCoupons((prev) => addCouponIfNew(prev, event.rewardCoupon))
-      }
+      const rewardCoupon =
+        event._mockRewardCoupon ??
+        {
+          id: `mock-coupon-${eventId}`,
+          name: event.storeName,
+          discountType: event.discountType,
+          discountValue: event.discountType === 'RATE' ? RATE_DISCOUNT_BY_TIER[membershipTier] : event.discountValue,
+          maxDiscount: event.maxDiscountAmount,
+        }
+      setWalletCoupons((prev) => addCouponIfNew(prev, rewardCoupon))
       return { ok: true }
     }
   }
 
-  const getEventState = (eventId) => eventStates[eventId] ?? { remainingStock: 0, claimed: false, soldOut: true }
+  const getEventState = (eventId) => eventStates[eventId] ?? { remainingStock: 0, claimed: false, soldOut: true, status: 'CLOSED' }
 
   // 결제(checkout) 성공 시 실제로 쿠폰이 BE에서 USED로 전이됐으면 지갑에서 지워서
   // "이미 쓴 쿠폰"이 결제 화면 드롭다운에 다시 뜨는 걸 막는다.
@@ -140,6 +247,8 @@ export function EventProvider({ children }) {
   return (
     <EventContext.Provider
       value={{
+        events,
+        eventsFetchFailed,
         eventStates,
         claimCoupon,
         getEventState,
@@ -147,6 +256,7 @@ export function EventProvider({ children }) {
         walletCoupons,
         removeCouponFromWallet,
         restoreCouponToWallet,
+        refreshWalletCoupons,
         membershipTier,
       }}
     >
@@ -155,10 +265,17 @@ export function EventProvider({ children }) {
   )
 }
 
+// 이벤트(캠페인) 메타데이터 목록 조회 - 이벤트 목록/상세 화면에서 사용
+export function useEvents() {
+  const ctx = useContext(EventContext)
+  if (!ctx) throw new Error('useEvents must be used within EventProvider')
+  return { events: ctx.events, eventsFetchFailed: ctx.eventsFetchFailed }
+}
+
 // eventId를 넘기면 해당 이벤트의 발급 상태 + claimCoupon 액션을 반환.
 // 컴포넌트가 마운트돼 있는 동안 GET /api/campaigns/{campaignId}/stock을 3초 간격으로 폴링해서
 // remainingStock/soldOut을 서버 값으로 계속 갱신한다(이벤트 목록/상세 화면 둘 다 이 훅을 쓰므로
-// 두 화면 다 "실시간으로 줄어드는" 효과가 남).
+// 두 화면 다 "실시간으로 줄어드는" 효과가 남). mock 폴백 상태에선 폴링하지 않는다(캠페인 ID가 가짜라서).
 export function useEventCoupon(eventId) {
   const ctx = useContext(EventContext)
   if (!ctx) throw new Error('useEventCoupon must be used within EventProvider')
@@ -175,6 +292,7 @@ export function useEventCoupon(eventId) {
     remainingStock: state.remainingStock,
     claimed: state.claimed,
     soldOut: state.soldOut,
+    status: state.status, // 'READY' | 'OPEN' | 'CLOSED'
     claimCoupon: () => ctx.claimCoupon(eventId),
   }
 }
@@ -190,7 +308,11 @@ export function useWalletCoupons() {
 export function useWalletCouponActions() {
   const ctx = useContext(EventContext)
   if (!ctx) throw new Error('useWalletCouponActions must be used within EventProvider')
-  return { removeCouponFromWallet: ctx.removeCouponFromWallet, restoreCouponToWallet: ctx.restoreCouponToWallet }
+  return {
+    removeCouponFromWallet: ctx.removeCouponFromWallet,
+    restoreCouponToWallet: ctx.restoreCouponToWallet,
+    refreshWalletCoupons: ctx.refreshWalletCoupons,
+  }
 }
 
 // 내 멤버십 계급(enum 문자열, 예: 'SERGEANT') 조회. 한글 표시가 필요하면 utils/membership.tierLabel() 사용.

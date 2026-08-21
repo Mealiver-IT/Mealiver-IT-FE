@@ -8,11 +8,10 @@ import { orderHistory as pastOrderHistory } from '../data/mockData'
 //
 // CartContext가 마운트 시 GET /api/orders로 실제 이력을 불러와 이번 세션에 만든 주문과 합쳐서 orders에 담아둔다.
 // 다만 BE의 orders 테이블엔 store/메뉴 정보도, 어떤 쿠폰을 썼는지도 안 남아있다(계급 산정용 최소 스키마라서) —
-// 그래서 "과거"(이번 세션에 만들지 않은) 주문은 가게명이 없고, 취소해도 쿠폰을 되돌려주지 못한다.
-// 이번 세션에 만든 주문만 CartContext가 브라우저 메모리에 쿠폰 정보까지 들고 있어서 완전한 취소 흐름이 된다.
+// 그래서 "과거"(이번 세션에 만들지 않은) 주문은 가게명이 없고, 어떤 쿠폰이었는지도 모른다.
 export default function OrderHistoryPage() {
   const { orders, historyFetchFailed, requestCancelOrder } = useCart()
-  const { restoreCouponToWallet } = useWalletCouponActions()
+  const { restoreCouponToWallet, refreshWalletCoupons } = useWalletCouponActions()
 
   const handleCancel = async (order) => {
     const label = order.storeName ?? `주문 #${order.orderId}`
@@ -23,11 +22,14 @@ export default function OrderHistoryPage() {
       alert(result.message)
       return
     }
-    // BE가 쿠폰을 ISSUED로 되돌렸으면(markReturnedToIssued) 지갑에도 다시 노출.
-    // 과거(BE 조회) 주문은 애초에 couponIssueId를 몰라서 여기 안 걸림 — 실제로 쿠폰을 썼어도 복귀 못 시킴.
+    // 어떤 쿠폰인지 알고 있으면(이번 세션에 만든 주문) 즉시 반영하고,
+    // 과거 주문이라 몰랐던 경우까지 포함해서 서버 기준으로 한 번 더 맞춘다 — BE는 취소 시점에 이미
+    // 쿠폰을 ISSUED로 되돌려놨으므로(markReturnedToIssued), 다시 조회하면 그 쿠폰이 잡힌다.
+    // 이걸 안 하면 새로고침을 해야만 지갑에 다시 보였다.
     if (order.couponIssueId && order.coupon) {
       restoreCouponToWallet(order.coupon)
     }
+    await refreshWalletCoupons()
     alert('주문이 취소되었습니다.')
   }
 

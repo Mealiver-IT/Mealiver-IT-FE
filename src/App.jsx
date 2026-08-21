@@ -11,6 +11,7 @@ import MyPage from './pages/MyPage'
 import EventListPage from './pages/EventListPage'
 import EventPage from './pages/EventPage'
 import OrderHistoryPage from './pages/OrderHistoryPage'
+import CouponWalletPage from './pages/CouponWalletPage'
 
 // 디자인 없이 버튼 배치만 확인하기 위한 저충실도 프로토타입.
 // 화면 흐름: 홈(가게목록) -> 가게(메뉴) -> 장바구니 -> 주문/결제, + 마이페이지 / 선착순 이벤트
@@ -26,6 +27,7 @@ function App() {
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/mypage" element={<MyPage />} />
             <Route path="/orders" element={<OrderHistoryPage />} />
+            <Route path="/coupons" element={<CouponWalletPage />} />
             <Route path="/events" element={<EventListPage />} />
             <Route path="/event/:eventId" element={<EventPage />} />
           </Routes>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import { benefits as mockBenefits } from '../data/mockData'
-import { useWalletCoupons, useMembershipTier, toFECoupon } from '../context/EventContext'
+import { useMembershipTier, toFECoupon } from '../context/EventContext'
 import { fetchMyBenefits } from '../api/membership'
 import { tierLabel } from '../utils/membership'
 import { formatDiscountDetail } from '../utils/coupon'
@@ -12,7 +12,6 @@ import { formatDiscountDetail } from '../utils/coupon'
 // "주문 내역"은 OrderHistoryPage(/orders)로 이동 — 상세 설명은 그쪽 주석 참고
 export default function MyPage() {
   const navigate = useNavigate()
-  const myCoupons = useWalletCoupons()
   const membershipTier = useMembershipTier()
   const [benefits, setBenefits] = useState(mockBenefits)
 
@@ -32,7 +31,7 @@ export default function MyPage() {
 
   const menuButtons = [
     { label: '주문 내역', onClick: () => navigate('/orders') },
-    { label: '쿠폰함', onClick: () => alert(`보유 쿠폰 ${myCoupons.length}장 (목데이터)`) },
+    { label: '쿠폰함', onClick: () => navigate('/coupons') },
     { label: '리뷰 관리', onClick: () => alert('리뷰 관리 화면 (자리만 확보)') },
     { label: '즐겨찾기', onClick: () => alert('즐겨찾기 화면 (자리만 확보)') },
   ]

@@ -80,6 +80,7 @@ export function toFECoupon(issue) {
     discountType: issue.discountType,
     discountValue: Number(issue.discountValue),
     maxDiscount: issue.maxDiscountAmount != null ? Number(issue.maxDiscountAmount) : undefined,
+    validUntil: issue.validUntil ?? null, // 쿠폰함 화면에서 "~까지 사용 가능" 표시용. mock 쿠폰엔 없음(null)
   }
 }
 

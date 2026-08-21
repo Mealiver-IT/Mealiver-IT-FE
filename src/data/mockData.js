@@ -107,14 +107,11 @@ export const benefits = [
 // 여기 있는 건 이벤트와 무관하게 이미 지급된(멤버십 혜택 등) 쿠폰.
 export const myCoupons = [{ id: 'coupon-2', name: '10% 할인 쿠폰', discountType: 'RATE', discountValue: 10, maxDiscount: 3000 }]
 
-// GET /api/coupon-events (목록), GET /api/coupon-events/{eventId} (상세)
-// rewardCoupon: 선착순 쿠폰 받기 성공 시 지급되는 쿠폰 (POST .../claim 응답에 해당, 클레임 전엔 결제 화면에 노출 안 됨)
-// campaignId: 실제 BE campaign.id(Long) 매핑용 — DB에 캠페인 시딩 스크립트가 없어서
-// 지금 어떤 ID가 실제로 존재하는지 확인 불가. 우선 1, 2로 가정. 확인되면 교체 필요.
-// discountByLevel: 04_아키텍처 6.1절 TierDiscountPolicy(BE 코드에도 동일하게 구현됨) 확정값 그대로 —
-// 이등병·일병 10% / 상병 30% / 병장 50%. "원사"는 이 프로젝트의 4단계 계급(이등병/일병/상병/병장)에 없는 값이라 제거.
-// 키를 한글 대신 BE 멤버십 계급 enum(PRIVATE/PFC/CORPORAL/SERGEANT)으로 둠 — GET /api/members/me/membership이
-// 이 enum으로 응답하므로(2026-08-20 백엔드 가이드), 화면 표시할 때만 utils/membership.tierLabel()로 한글 변환.
+// GET /api/campaigns 실패 시(BE 미연결 등) 폴백용 mock — EventContext.mockEventToFEEvent가 실제
+// 캠페인과 같은 shape으로 변환해서 쓴다. RATE 타입 할인율은 이제 캠페인마다 다른 값이 아니라
+// utils/membership.RATE_DISCOUNT_BY_TIER(TierDiscountPolicy와 동일) 고정 정책을 따르므로 여기 필드로
+// 안 둔다. rewardCoupon: 선착순 쿠폰 받기 성공 시 지급되는 쿠폰(BE 미연결 상황의 폴백 전용).
+// campaignId: 실제 BE campaign.id(Long) 매핑용 — mock 폴백에서만 쓰이고 실제 API 성공 시엔 무시됨.
 export const couponEvents = [
   {
     eventId: 'event-1',
@@ -124,7 +121,6 @@ export const couponEvents = [
     bannerText: '선착순 5,000원 쿠폰',
     totalStock: 10000,
     remainingStock: 3120,
-    discountByLevel: { PRIVATE: 10, PFC: 10, CORPORAL: 30, SERGEANT: 50 },
     rewardCoupon: { id: 'coupon-event-1', name: '선착순 5,000원 쿠폰', discountType: 'FIXED', discountValue: 5000 },
   },
   {
@@ -135,7 +131,6 @@ export const couponEvents = [
     bannerText: '선착순 3,000원 쿠폰',
     totalStock: 5000,
     remainingStock: 812,
-    discountByLevel: { PRIVATE: 10, PFC: 10, CORPORAL: 30, SERGEANT: 50 },
     rewardCoupon: { id: 'coupon-event-2', name: '선착순 3,000원 쿠폰', discountType: 'FIXED', discountValue: 3000 },
   },
 ]

@@ -131,7 +131,9 @@ body {
   width: 390px;
   max-width: 100%;
   margin: 24px auto;
-  min-height: 780px;
+  /* 콘텐츠가 많아져도 틀 자체는 늘어나지 않고, 안쪽 .screen-content(flex:1)만 스크롤되도록 높이를 고정한다.
+     min-height였을 때는 콘텐츠가 틀을 계속 밀어 늘려서 상단바/하단탭까지 페이지와 함께 떠내려갔음. */
+  height: min(780px, calc(100vh - 48px));
   border-radius: 28px;
   border: 1px solid var(--line);
   background: var(--bg);

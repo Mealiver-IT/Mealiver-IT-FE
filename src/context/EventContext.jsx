@@ -73,12 +73,19 @@ const EventContext = createContext(null)
 // MyPage 혜택 목록에서도 재사용한다.
 // issueId: 실제 BE coupon_issue PK. 주문 생성(POST /api/orders) 시 couponIssueId로 그대로 넘겨야 함.
 export function toFECoupon(issue) {
+  const isRate = issue.discountType === 'RATE'
   return {
     id: `issue-${issue.id}`,
     issueId: issue.id,
     name: issue.campaignName ?? `쿠폰 (${issue.couponCode})`,
     discountType: issue.discountType,
-    discountValue: Number(issue.discountValue),
+    // RATE 쿠폰은 BE가 발급 시점에 TierDiscountPolicy.rateFor()로 계산해서 저장하는데, 그 값이
+    // 0.10/0.30/0.50처럼 "소수"다(2026-08-21 실제 발급 응답으로 확인: discountValue: 0.10).
+    // 반면 utils/coupon.js의 calcCouponDiscount/formatDiscountDetail은 discountValue를 "퍼센트 정수"로
+    // 기대한다(10을 그대로 %로 보여주고, /100 해서 할인액을 계산) — 단위를 안 맞추면 10% 할인이
+    // 0.1%로 계산돼서 할인액이 100배 작게 나온다(예: 27,000원 주문에 27원만 할인). 100을 곱해 단위를 맞춘다.
+    // FIXED는 원 단위 그대로라 손댈 필요 없음.
+    discountValue: isRate ? Number(issue.discountValue) * 100 : Number(issue.discountValue),
     maxDiscount: issue.maxDiscountAmount != null ? Number(issue.maxDiscountAmount) : undefined,
     validUntil: issue.validUntil ?? null, // 쿠폰함 화면에서 "~까지 사용 가능" 표시용. mock 쿠폰엔 없음(null)
   }

@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import TopBar from '../components/TopBar'
+import ActionErrorPage from '../components/ActionErrorPage'
 import { useEventCoupon, useEvents, useMembershipTier } from '../context/EventContext'
 import { tierLabel, meetsMinTier, RATE_DISCOUNT_BY_TIER, TIER_ORDER } from '../utils/membership'
 import FoodIcon from '../components/FoodIcon'
@@ -7,7 +9,7 @@ import FoodIcon from '../components/FoodIcon'
 // 이벤트 상세 페이지(선착순 쿠폰 수령) - KAN-71
 // 대응: GET /api/campaigns(목록, 연동함), GET /api/campaigns/{campaignId}/stock(잔여수량 폴링),
 //       POST /api/campaigns/{campaignId}/coupons(발급)
-// claimCoupon은 실제 API를 먼저 시도하고 실패 시 로컬 mock으로 대체함 (EventContext 참고)
+// claimCoupon 실패(BE 거부든 네트워크 오류든)는 ActionErrorPage로 그대로 보여준다 (EventContext 참고)
 //
 // 할인 표시 로직이 discountType에 따라 갈린다 — RATE 타입은 캠페인 자체 할인율이 아니라
 // 발급 시점 유저 계급으로 결정되는 고정 정책(RATE_DISCOUNT_BY_TIER)을 그대로 보여주고,
@@ -19,6 +21,7 @@ export default function EventPage() {
   const event = events.find((e) => e.eventId === eventId)
   const { claimed, remainingStock, soldOut, status, claimCoupon } = useEventCoupon(eventId)
   const membershipTier = useMembershipTier()
+  const [actionError, setActionError] = useState(null) // { code, message } — 발급 실패 시 ActionErrorPage로 표시
 
   if (!event) {
     return (
@@ -49,8 +52,29 @@ export default function EventPage() {
       alert(`${tierLabel(event.minMembershipTier)} 이상만 받을 수 있는 쿠폰입니다.`)
       return
     }
+    setActionError(null)
     const result = await claimCoupon()
-    alert(result.ok ? '쿠폰이 발급되었습니다!' : result.message)
+    if (!result.ok) {
+      setActionError({ code: result.code, message: result.message })
+      return
+    }
+    alert('쿠폰이 발급되었습니다!')
+  }
+
+  if (actionError) {
+    return (
+      <>
+        <TopBar title="이벤트" />
+        <div className="screen-content">
+          <ActionErrorPage
+            code={actionError.code}
+            message={actionError.message}
+            onRetry={handleClaim}
+            onClose={() => setActionError(null)}
+          />
+        </div>
+      </>
+    )
   }
 
   return (

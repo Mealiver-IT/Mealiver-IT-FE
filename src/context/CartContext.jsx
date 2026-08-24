@@ -16,7 +16,7 @@ function toFEStatus(beStatus) {
 //   DELETE /api/cart/items/{id}   -> removeItem (미연동, mock)
 //   DELETE /api/cart              -> clearCart (미연동, mock)
 //   POST   /api/cart/coupons      -> applyCoupon (미연동, mock)
-//   POST   /api/orders            -> checkout (실제 API 연동함. 실패 시 mock 폴백 — EventContext와 동일 패턴)
+//   POST   /api/orders            -> checkout (실제 API 연동함. 실패 시 ok:false로 반환 — EventContext와 동일 패턴)
 
 const CartContext = createContext(null)
 
@@ -117,9 +117,10 @@ export function CartProvider({ children }) {
   // storeName/items/address 등은 프론트에서 별도로 붙여서 저장함.
   // couponIssueId는 실제로 발급받은 쿠폰(issueId 있는 것)일 때만 넘김 — mock 전용 쿠폰은 BE에 존재하지 않아서 생략.
   //
-  // 반환값은 EventContext.claimCoupon과 동일한 패턴: { ok: true, order } 성공(실제 주문 또는 BE 미연결 시
-  // mock 폴백) / { ok: false, code, message } BE가 정상 응답했지만 거부한 경우. 전부 "성공"으로 뭉개면
-  // 유효하지 않은 쿠폰 등으로 실제로는 거부된 주문도 "주문이 완료되었습니다"로 보이는 오탐이 생긴다.
+  // 반환값은 EventContext.claimCoupon과 동일한 패턴: { ok: true, order } 실제 주문 성공 /
+  // { ok: false, code, message } 실패. code가 없는 경우(BE 미도달)도 'NETWORK_ERROR'로 통일해서
+  // 실패로 반환한다 - 예전엔 이 경우를 mock 주문으로 대체해 "성공"으로 보여줬는데, 실제로는 결제/쿠폰
+  // 사용이 전혀 안 된 걸 완료된 것처럼 보여주는 셈이라 제거했다(2026-08-21, RATE 쿠폰 27원 사건 계기).
   //
   // isCheckingOut: BE의 POST /api/orders는 Idempotency-Key를 받긴 하지만 실제로 중복 생성을 막진 않는다
   // (orders 테이블에 idempotency_key 제약이 없음) — 재시도/더블클릭이 오면 주문이 그대로 중복 생성된다.
@@ -152,30 +153,11 @@ export function CartProvider({ children }) {
       return { ok: true, order }
     } catch (err) {
       if (err.code) {
-        // BE가 실제로 응답했고, 정당한 사유로 거부한 것(유효하지 않은 couponIssueId 등) -> mock으로 눙치지 말 것
         console.warn(`[CartContext] 주문 거부: ${err.code} - ${err.message}`)
         return { ok: false, code: err.code, message: err.message }
       }
-      // code가 없다 = BE에 아예 도달하지 못함(미기동/네트워크 오류 등) -> 로컬 mock으로 대체 (데모용 폴백)
-      // 실제로 발급/소모된 쿠폰이 아니므로 couponIssueId/coupon은 비워둠(취소 시 되돌려줄 실물이 없음).
-      console.warn(`[CartContext] 주문 API 연결 실패, mock으로 대체 처리: ${err.message}`)
-      const order = {
-        orderId: `order-${Date.now()}`,
-        storeName,
-        items,
-        address,
-        paymentMethodId,
-        totalPrice,
-        status: '주문완료',
-        couponIssueId: null,
-        coupon: null,
-        isMock: true,
-        orderedAt: new Date().toISOString(),
-      }
-      setOrders((prev) => [order, ...prev])
-      setLastOrder(order)
-      clearCart()
-      return { ok: true, order }
+      console.warn(`[CartContext] 주문 API 연결 실패: ${err.message}`)
+      return { ok: false, code: 'NETWORK_ERROR', message: '서버에 연결할 수 없습니다. 네트워크 상태를 확인하고 다시 시도해주세요.' }
     } finally {
       setIsCheckingOut(false)
     }
@@ -213,9 +195,10 @@ export function CartProvider({ children }) {
         console.warn(`[CartContext] 주문 취소 거부: ${err.code} - ${err.message}`)
         return { ok: false, code: err.code, message: err.message }
       }
-      console.warn(`[CartContext] 주문 취소 API 연결 실패, 로컬에서만 취소 처리: ${err.message}`)
-      markCanceled()
-      return { ok: true, order: target }
+      // 예전엔 이 경우(BE 미도달) 로컬만 취소 처리하고 "성공"으로 반환했는데, 실제로는 BE의 쿠폰/주문
+      // 상태가 그대로라 화면과 서버 상태가 어긋난다 - NETWORK_ERROR로 실패 반환한다.
+      console.warn(`[CartContext] 주문 취소 API 연결 실패: ${err.message}`)
+      return { ok: false, code: 'NETWORK_ERROR', message: '서버에 연결할 수 없습니다. 네트워크 상태를 확인하고 다시 시도해주세요.' }
     }
   }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
+import ActionErrorPage from '../components/ActionErrorPage'
 import { useCart } from '../context/CartContext'
 import { useWalletCoupons, useWalletCouponActions } from '../context/EventContext'
 import { paymentMethods, stores } from '../data/mockData'
@@ -21,6 +22,7 @@ export default function CheckoutPage() {
   const [request, setRequest] = useState('')
   const [paymentMethodId, setPaymentMethodId] = useState(paymentMethods[0].id)
   const [freeDeliveryAssist, setFreeDeliveryAssist] = useState(false)
+  const [actionError, setActionError] = useState(null) // { code, message } — 결제 실패 시 ActionErrorPage로 표시
 
   const store = stores.find((s) => s.id === storeId)
   const belowMinOrder = store ? subtotal < store.minOrderAmount : false
@@ -38,17 +40,34 @@ export default function CheckoutPage() {
 
   const handlePay = async () => {
     if (belowMinOrder || isCheckingOut) return
+    setActionError(null)
     const result = await checkout({ address, paymentMethodId })
     if (!result.ok) {
-      alert(result.message)
+      setActionError({ code: result.code, message: result.message })
       return
     }
-    // 실제(mock 아님) 주문이 쿠폰과 함께 성공했을 때만 지갑에서 지운다 — BE가 그 쿠폰을 실제로 USED 처리했을 때만.
-    if (!result.order.isMock && result.order.couponIssueId) {
+    // 쿠폰과 함께 결제가 성공했을 때만 지갑에서 지운다 — BE가 그 쿠폰을 실제로 USED 처리했을 때만.
+    if (result.order.couponIssueId) {
       removeCouponFromWallet(result.order.coupon.id)
     }
-    alert(result.order.isMock ? '주문이 완료되었습니다. (mock 처리, 실제 결제 아님)' : '주문이 완료되었습니다.')
+    alert('주문이 완료되었습니다.')
     navigate('/mypage')
+  }
+
+  if (actionError) {
+    return (
+      <>
+        <TopBar title="주문/결제" />
+        <div className="screen-content">
+          <ActionErrorPage
+            code={actionError.code}
+            message={actionError.message}
+            onRetry={handlePay}
+            onClose={() => setActionError(null)}
+          />
+        </div>
+      </>
+    )
   }
 
   return (

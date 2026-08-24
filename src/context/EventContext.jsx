@@ -179,6 +179,14 @@ export function EventProvider({ children }) {
   // GET /api/campaigns/{campaignId}/stock 폴링 — useEventCoupon을 쓰는 화면(이벤트 목록/상세)이
   // 떠 있는 동안 주기적으로 호출돼 잔여 수량을 서버 값으로 갱신한다. 실패해도 조용히 무시하고
   // 마지막으로 알고 있던 값(로컬 mock 또는 이전 폴링 값)을 유지 — 데모 연속성을 위해 에러를 화면에 안 띄움.
+  //
+  // 2026-08-24 팀장님 확인: BE에 이미 있는 SSE(GET /api/admin/campaigns/{id}/stream)는 이 폴링과
+  // 무관하다 — FR-FCFS-033 "발급 현황 실시간 대시보드" 전용으로, 발표 때 운영자가 잠깐 지켜보는
+  // 관전 화면을 위한 것이다(발급 자격 게이팅과 무관, 인증 없는 admin 경로). 사용자 전체가 들어오는
+  // 이 이벤트 상세 화면을 SSE로 바꿀 계획은 처음부터 없었고, 있어서도 안 된다 — 그 SSE는 "발표 중
+  // 관리자 몇 명이 대시보드 하나를 오래 붙잡고 보는" 걸 가정해 만들어서, 사용자 수천 명이 각자
+  // 이 화면에 들어올 때마다 SSE 커넥션을 하나씩 열면 서버가 못 버틴다. 이 폴링은 임시가 아니라
+  // 의도된 선택이다 — 나중에 갈아 끼울 준비를 해둘 필요 없음.
   const refreshStock = async (eventId) => {
     const event = findEvent(eventId)
     if (!event || eventsFetchFailed) return // mock 폴백 상태에선 폴링할 실제 캠페인이 없음

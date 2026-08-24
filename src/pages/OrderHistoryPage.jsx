@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import ActionErrorPage from '../components/ActionErrorPage'
 import { useCart } from '../context/CartContext'
@@ -11,7 +12,11 @@ import { orderHistory as pastOrderHistory } from '../data/mockData'
 // CartContext가 마운트 시 GET /api/orders로 실제 이력을 불러와 이번 세션에 만든 주문과 합쳐서 orders에 담아둔다.
 // 다만 BE의 orders 테이블엔 store/메뉴 정보도, 어떤 쿠폰을 썼는지도 안 남아있다(계급 산정용 최소 스키마라서) —
 // 그래서 "과거"(이번 세션에 만들지 않은) 주문은 가게명이 없고, 어떤 쿠폰이었는지도 모른다.
+//
+// 항목을 누르면 OrderDetailPage(/orders/:orderId)로 이동 - 이 orders 배열을 그대로 다시 찾아서 보여주므로
+// 별도 API 재조회 없음. 취소 버튼은 상세로 이동시키면 안 되니 형제 버튼(.order-row-info)으로 분리했다.
 export default function OrderHistoryPage() {
+  const navigate = useNavigate()
   const { orders, historyFetchFailed, requestCancelOrder } = useCart()
   const { restoreCouponToWallet, refreshWalletCoupons } = useWalletCouponActions()
   const [actionError, setActionError] = useState(null) // { code, message, orderId } — 취소 실패 시 ActionErrorPage로 표시
@@ -73,7 +78,7 @@ export default function OrderHistoryPage() {
           <div className="menu-list">
             {orders.map((order) => (
               <div key={order.orderId} className="list-item menu-row">
-                <div>
+                <button type="button" className="order-row-info" onClick={() => navigate(`/orders/${order.orderId}`)}>
                   <div className="menu-name">
                     {order.storeName ?? `주문 #${order.orderId}`}
                     {order.isMock && <span className="badge">mock</span>}
@@ -88,7 +93,7 @@ export default function OrderHistoryPage() {
                   >
                     {order.status}
                   </div>
-                </div>
+                </button>
                 {order.status === '주문완료' && (
                   <button type="button" className="btn btn-small" onClick={() => handleCancel(order)}>
                     주문 취소

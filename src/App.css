@@ -548,6 +548,16 @@ body {
   cursor: default;
 }
 
+/* 주문 내역처럼 한 행 안에 "누르면 상세로 이동하는 영역"과 "취소 버튼" 두 개의 클릭 대상이 같이
+   있어야 할 때 씀 - 버튼 안에 버튼을 못 넣으니(HTML 무효) 이렇게 형제로 분리한다.
+   all: unset으로 버튼 기본 스타일을 지우고 텍스트 블록처럼 보이게 함. */
+.order-row-info {
+  all: unset;
+  cursor: pointer;
+  flex: 1;
+  min-width: 0;
+}
+
 .menu-name {
   font-weight: 800;
   font-family: var(--font-display);
@@ -731,6 +741,35 @@ body {
   gap: 8px;
   width: 100%;
   margin-top: 12px;
+}
+
+/* 결제 성공 직후 전용 완료 화면 상단부 - action-error-page와 같은 뼈대(아이콘+제목+설명)를
+   성공 톤(--accent)으로 재사용. 아래 주문 정보/버튼은 일반 box-flat/menu-list 그대로 씀. */
+.order-complete-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 28px 12px 8px;
+}
+
+.order-complete-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.order-complete-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--accent);
+}
+
+.order-complete-message {
+  color: var(--text-soft);
+  font-size: 0.9rem;
 }
 
 .empty-text {

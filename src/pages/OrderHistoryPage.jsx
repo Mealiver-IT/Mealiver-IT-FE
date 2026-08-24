@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import TopBar from '../components/TopBar'
+import ActionErrorPage from '../components/ActionErrorPage'
 import { useCart } from '../context/CartContext'
 import { useWalletCouponActions } from '../context/EventContext'
 import { orderHistory as pastOrderHistory } from '../data/mockData'
@@ -12,14 +14,15 @@ import { orderHistory as pastOrderHistory } from '../data/mockData'
 export default function OrderHistoryPage() {
   const { orders, historyFetchFailed, requestCancelOrder } = useCart()
   const { restoreCouponToWallet, refreshWalletCoupons } = useWalletCouponActions()
+  const [actionError, setActionError] = useState(null) // { code, message, orderId } — 취소 실패 시 ActionErrorPage로 표시
 
-  const handleCancel = async (order) => {
-    const label = order.storeName ?? `주문 #${order.orderId}`
-    const ok = window.confirm(`'${label}' (${order.totalPrice.toLocaleString()}원)을 취소할까요?`)
-    if (!ok) return
-    const result = await requestCancelOrder(order.orderId)
+  const attemptCancel = async (orderId) => {
+    const order = orders.find((o) => o.orderId === orderId)
+    if (!order) return
+    setActionError(null)
+    const result = await requestCancelOrder(orderId)
     if (!result.ok) {
-      alert(result.message)
+      setActionError({ code: result.code, message: result.message, orderId })
       return
     }
     // 어떤 쿠폰인지 알고 있으면(이번 세션에 만든 주문) 즉시 반영하고,
@@ -33,9 +36,32 @@ export default function OrderHistoryPage() {
     alert('주문이 취소되었습니다.')
   }
 
+  const handleCancel = async (order) => {
+    const label = order.storeName ?? `주문 #${order.orderId}`
+    const ok = window.confirm(`'${label}' (${order.totalPrice.toLocaleString()}원)을 취소할까요?`)
+    if (!ok) return
+    await attemptCancel(order.orderId)
+  }
+
   // BE 이력 조회가 실패했을 때만(네트워크 오류/서버 다운) mock 이력을 대신 보여준다 — 조회가 됐으면 그게 진짜 이력이라 mock은 사족.
   const showMockFallback = historyFetchFailed && pastOrderHistory.length > 0
   const isEmpty = orders.length === 0 && !showMockFallback
+
+  if (actionError) {
+    return (
+      <>
+        <TopBar title="주문 내역" />
+        <div className="screen-content">
+          <ActionErrorPage
+            code={actionError.code}
+            message={actionError.message}
+            onRetry={() => attemptCancel(actionError.orderId)}
+            onClose={() => setActionError(null)}
+          />
+        </div>
+      </>
+    )
+  }
 
   return (
     <>

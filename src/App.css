@@ -686,6 +686,53 @@ body {
   font-size: 0.85rem;
 }
 
+/* claim/order/cancel 실패 시 alert() 대신 쓰는 전용 에러 화면 - screen-content 영역을 통째로 대체해서
+   "별도 페이지"처럼 보이게 한다. topBar/bottomNav는 그대로 둬서 다른 화면으로 이동은 계속 가능하게 함. */
+.action-error-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 32px 24px;
+}
+
+.action-error-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.action-error-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--danger);
+}
+
+.action-error-message {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.action-error-code {
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+.action-error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+}
+
 .empty-text {
   color: var(--text-soft);
   font-size: 0.85rem;

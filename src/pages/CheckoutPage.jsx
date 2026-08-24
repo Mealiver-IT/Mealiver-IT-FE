@@ -50,8 +50,8 @@ export default function CheckoutPage() {
     if (result.order.couponIssueId) {
       removeCouponFromWallet(result.order.coupon.id)
     }
-    alert('주문이 완료되었습니다.')
-    navigate('/mypage')
+    // 방금 만든 주문을 navigation state로 그대로 넘겨서, 완료 화면이 다시 조회할 필요 없게 한다.
+    navigate('/order-complete', { state: { order: result.order } })
   }
 
   if (actionError) {

@@ -3,7 +3,6 @@ import { couponEvents as mockCouponEvents, myCoupons as defaultCoupons, DEFAULT_
 import { claimCampaignCoupon, fetchCampaignStock, fetchCampaigns } from '../api/campaigns'
 import { fetchMyCoupons } from '../api/coupons'
 import { fetchMembership } from '../api/membership'
-import { RATE_DISCOUNT_BY_TIER } from '../utils/membership'
 
 // 이벤트(선착순 캠페인) 목록/상태 관리 - 실제 DB 캠페인을 GET /api/campaigns로 불러와 이벤트 목록/상세
 // 화면에 노출한다. 실패하면(BE 미기동 등) 기존 mock 이벤트 2개로 대체 — 데모 연속성 유지.
@@ -62,7 +61,6 @@ function mockEventToFEEvent(event) {
     minOrderAmount: null,
     maxDiscountAmount: null,
     _mockRemainingStock: event.remainingStock,
-    _mockRewardCoupon: event.rewardCoupon,
   }
 }
 
@@ -181,6 +179,14 @@ export function EventProvider({ children }) {
   // GET /api/campaigns/{campaignId}/stock 폴링 — useEventCoupon을 쓰는 화면(이벤트 목록/상세)이
   // 떠 있는 동안 주기적으로 호출돼 잔여 수량을 서버 값으로 갱신한다. 실패해도 조용히 무시하고
   // 마지막으로 알고 있던 값(로컬 mock 또는 이전 폴링 값)을 유지 — 데모 연속성을 위해 에러를 화면에 안 띄움.
+  //
+  // 2026-08-24 팀장님 확인: BE에 이미 있는 SSE(GET /api/admin/campaigns/{id}/stream)는 이 폴링과
+  // 무관하다 — FR-FCFS-033 "발급 현황 실시간 대시보드" 전용으로, 발표 때 운영자가 잠깐 지켜보는
+  // 관전 화면을 위한 것이다(발급 자격 게이팅과 무관, 인증 없는 admin 경로). 사용자 전체가 들어오는
+  // 이 이벤트 상세 화면을 SSE로 바꿀 계획은 처음부터 없었고, 있어서도 안 된다 — 그 SSE는 "발표 중
+  // 관리자 몇 명이 대시보드 하나를 오래 붙잡고 보는" 걸 가정해 만들어서, 사용자 수천 명이 각자
+  // 이 화면에 들어올 때마다 SSE 커넥션을 하나씩 열면 서버가 못 버틴다. 이 폴링은 임시가 아니라
+  // 의도된 선택이다 — 나중에 갈아 끼울 준비를 해둘 필요 없음.
   const refreshStock = async (eventId) => {
     const event = findEvent(eventId)
     if (!event || eventsFetchFailed) return // mock 폴백 상태에선 폴링할 실제 캠페인이 없음
@@ -195,10 +201,14 @@ export function EventProvider({ children }) {
     }
   }
 
-  // 반환값: { ok: true } 성공(실제 발급 또는 BE 미연결 시 mock 폴백) / { ok: false, code, message } BE가
-  // 정상 응답했지만 거부한 경우(품절/중복수령/등급미달/미오픈 등, FR-FCFS-031). 호출부(EventPage)가 이 둘을
-  // 구분해서 사용자에게 실제 사유를 보여줘야 한다 — 전부 "성공"으로 뭉개면 등급 미달 요청도 발급된 것처럼
-  // 보이는 오탐이 생긴다.
+  // 반환값: { ok: true } 실제 발급 성공 / { ok: false, code, message } 실패.
+  // code가 있으면 BE가 실제로 응답했지만 거부한 것(품절/중복수령/등급미달/미오픈 등, FR-FCFS-031),
+  // code가 없으면 BE에 아예 도달하지 못한 것(미기동/네트워크 오류/타임아웃)이다 - 이 경우도 code:
+  // 'NETWORK_ERROR'로 통일해서 반환한다.
+  // 2026-08-21까지는 code가 없는 경우를 "로컬 mock으로 대체 성공 처리"했었는데, 실제로는 발급되지
+  // 않은 걸 발급된 것처럼 보여주는 셈이라(지갑엔 있는데 DB엔 없는 쿠폰, RATE 27원 사건 계기로 발견)
+  // 제거했다 — claim/order/cancel처럼 상태를 바꾸는 액션은 실패를 절대 성공으로 위장하면 안 된다.
+  // 호출부(EventPage)는 ok:false를 ActionErrorPage로 그대로 보여줘야 한다.
   const claimCoupon = async (eventId) => {
     const current = eventStates[eventId]
     if (!current || current.claimed || current.remainingStock <= 0 || current.status !== 'OPEN') {
@@ -216,24 +226,11 @@ export function EventProvider({ children }) {
       return { ok: true }
     } catch (err) {
       if (err.code) {
-        // BE가 실제로 응답했고, 정당한 사유로 거부한 것 -> mock으로 눙치지 말고 사유 그대로 전달
         console.warn(`[EventContext] 발급 거부: ${err.code} - ${err.message}`)
         return { ok: false, code: err.code, message: err.message }
       }
-      // code가 없다 = BE에 아예 도달하지 못함(미기동/네트워크 오류/캠페인ID 불일치 등) -> 로컬 mock으로 대체 (데모용 폴백)
-      console.warn(`[EventContext] 발급 API 연결 실패, mock으로 대체 처리: ${err.message}`)
-      setEventStates((prev) => ({ ...prev, [eventId]: decrementLocally(prev, eventId) }))
-      const rewardCoupon =
-        event._mockRewardCoupon ??
-        {
-          id: `mock-coupon-${eventId}`,
-          name: event.storeName,
-          discountType: event.discountType,
-          discountValue: event.discountType === 'RATE' ? RATE_DISCOUNT_BY_TIER[membershipTier] : event.discountValue,
-          maxDiscount: event.maxDiscountAmount,
-        }
-      setWalletCoupons((prev) => addCouponIfNew(prev, rewardCoupon))
-      return { ok: true }
+      console.warn(`[EventContext] 발급 API 연결 실패: ${err.message}`)
+      return { ok: false, code: 'NETWORK_ERROR', message: '서버에 연결할 수 없습니다. 네트워크 상태를 확인하고 다시 시도해주세요.' }
     }
   }
 

@@ -283,6 +283,16 @@ export function useEvents() {
   return { events: ctx.events, eventsFetchFailed: ctx.eventsFetchFailed }
 }
 
+// eventId -> { remainingStock, claimed, soldOut, status } 맵 전체 조회.
+// EventListPage가 전체/진행중/마감 탭으로 목록을 나눌 때, 목록 항목 하나하나를 구독하지 않고도
+// 각 이벤트의 현재 상태를 한 번에 읽기 위해 씀 (실시간 갱신 자체는 각 EventListItem의
+// useEventCoupon이 계속 담당 - 여기서 반환하는 값은 그 결과가 반영된 스냅샷).
+export function useEventStates() {
+  const ctx = useContext(EventContext)
+  if (!ctx) throw new Error('useEventStates must be used within EventProvider')
+  return ctx.eventStates
+}
+
 // eventId를 넘기면 해당 이벤트의 발급 상태 + claimCoupon 액션을 반환.
 // 컴포넌트가 마운트돼 있는 동안 GET /api/campaigns/{campaignId}/stock을 3초 간격으로 폴링해서
 // remainingStock/soldOut을 서버 값으로 계속 갱신한다(이벤트 목록/상세 화면 둘 다 이 훅을 쓰므로

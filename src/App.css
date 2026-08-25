@@ -188,6 +188,30 @@ body {
   flex-shrink: 0;
 }
 
+.brand-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 배달 장소 선택 - 배민처럼 로고 옆에 작게, 눌러서 목록 고르는 셀렉트(이벤트 목록 정렬 셀렉트와 동일 톤) */
+.location-select {
+  font-size: 0.88rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  color: var(--text);
+  background: transparent;
+  border: none;
+  padding: 4px 2px;
+  cursor: pointer;
+}
+
+.location-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .screen-content {
   flex: 1;
   overflow-y: auto;

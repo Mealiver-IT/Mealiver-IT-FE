@@ -5,6 +5,7 @@
 // GET /api/categories
 export const categories = [
   { id: 'korean', name: '한식', mainExposed: true },
+  { id: 'chicken', name: '치킨', mainExposed: true },
   { id: 'chinese', name: '중식', mainExposed: true },
   { id: 'japanese', name: '일식', mainExposed: true },
   { id: 'snack', name: '분식', mainExposed: true },
@@ -28,7 +29,7 @@ export const stores = [
   },
   {
     id: 'store-2',
-    categoryId: 'korean',
+    categoryId: 'chicken',
     name: '바삭 치킨 하우스',
     icon: 'chicken',
     rating: 4.9,
@@ -59,30 +60,115 @@ export const stores = [
     minOrderAmount: 18000,
     hasCoupon: true,
   },
+  // 2026-08-25 추가: 한식/일식 말고는 가게가 하나도 없어서 카테고리 탭(중식/분식/야식/피자/디저트)을
+  // 누르면 항상 "해당 카테고리 가게가 없습니다"만 떴다 - 카테고리당 최소 1곳씩 채움.
+  // 전용 아이콘이 없는 카테고리는 FoodIcon의 fallback인 'default'(회색 원)를 그대로 씀.
+  {
+    id: 'store-5',
+    categoryId: 'chinese',
+    name: '짬뽕지존',
+    icon: 'default',
+    rating: 4.7,
+    reviewCount: '1.5k+',
+    deliveryFee: 3000,
+    minOrderAmount: 14000,
+    hasCoupon: false,
+  },
+  {
+    id: 'store-6',
+    categoryId: 'snack',
+    name: '엽기떡볶이',
+    icon: 'default',
+    rating: 4.6,
+    reviewCount: '3.2k+',
+    deliveryFee: 2000,
+    minOrderAmount: 10000,
+    hasCoupon: true,
+  },
+  {
+    id: 'store-7',
+    categoryId: 'night',
+    name: '포장마차 야식당',
+    icon: 'default',
+    rating: 4.5,
+    reviewCount: '1.1k+',
+    deliveryFee: 3500,
+    minOrderAmount: 20000,
+    hasCoupon: false,
+  },
+  {
+    id: 'store-8',
+    categoryId: 'pizza',
+    name: '피자마루',
+    icon: 'default',
+    rating: 4.8,
+    reviewCount: '2.4k+',
+    deliveryFee: 3000,
+    minOrderAmount: 16000,
+    hasCoupon: false,
+  },
+  {
+    id: 'store-9',
+    categoryId: 'dessert',
+    name: '달콤베이커리',
+    icon: 'default',
+    rating: 4.9,
+    reviewCount: '800+',
+    deliveryFee: 2500,
+    minOrderAmount: 8000,
+    hasCoupon: true,
+  },
 ]
 
-// 가게 내 탭 (대표메뉴 / 김밥 / 라면 등) — 화면 배치 확인용, 필터 로직은 없음
-export const storeMenuTabs = ['대표메뉴', '김밥', '라면']
-
 // GET /api/stores/{storeId}/menus 에 대응 (명세서엔 별도 항목 없어 카트/주문 흐름 기준으로 추정)
+// 2026-08-25 수정: 예전엔 storeMenuTabs라는 탭 목록 하나를 모든 가게가 공용으로 썼었다(치킨집/국밥집도
+// "김밥/라면" 탭이 그대로 뜨는 오류) - 이제 각 메뉴에 category를 붙이고, StorePage가 "이 가게 메뉴에
+// 실제로 있는 카테고리"만 뽑아서 탭으로 보여준다(+"대표메뉴" = 전체). 탭도 클릭하면 실제로 필터링됨
+// (예전엔 버튼에 onClick 자체가 없어서 눌러도 아무 반응이 없었음).
 export const menusByStore = {
   'store-1': [
-    { id: 'menu-1', name: '참치김밥', option: '신선한 참치와 야채', price: 4500 },
-    { id: 'menu-2', name: '야채김밥', option: '아삭한 제철 야채', price: 4500 },
-    { id: 'menu-3', name: '치즈김밥', option: '고소한 치즈 듬뿍', price: 4500 },
-    { id: 'menu-4', name: '라면', option: '얼큰한 국물', price: 5000 },
+    { id: 'menu-1', name: '참치김밥', option: '신선한 참치와 야채', price: 4500, category: '김밥' },
+    { id: 'menu-2', name: '야채김밥', option: '아삭한 제철 야채', price: 4500, category: '김밥' },
+    { id: 'menu-3', name: '치즈김밥', option: '고소한 치즈 듬뿍', price: 4500, category: '김밥' },
+    { id: 'menu-4', name: '라면', option: '얼큰한 국물', price: 5000, category: '라면' },
   ],
   'store-2': [
-    { id: 'menu-5', name: '후라이드 치킨', option: '기본', price: 18000 },
-    { id: 'menu-6', name: '양념 치킨', option: '기본', price: 19000 },
+    { id: 'menu-5', name: '후라이드 치킨', option: '기본', price: 18000, category: '후라이드' },
+    { id: 'menu-6', name: '양념 치킨', option: '기본', price: 19000, category: '양념' },
   ],
   'store-3': [
-    { id: 'menu-7', name: '국밥', option: '기본', price: 9500 },
-    { id: 'menu-8', name: '수육 국밥', option: '곱빼기', price: 12000 },
+    { id: 'menu-7', name: '국밥', option: '기본', price: 9500, category: '국밥' },
+    { id: 'menu-8', name: '수육 국밥', option: '곱빼기', price: 12000, category: '수육국밥' },
   ],
   'store-4': [
-    { id: 'menu-9', name: '연어 초밥 세트', option: '기본', price: 16000 },
-    { id: 'menu-10', name: '광어 초밥 세트', option: '기본', price: 15000 },
+    { id: 'menu-9', name: '연어 초밥 세트', option: '기본', price: 16000, category: '초밥' },
+    { id: 'menu-10', name: '광어 초밥 세트', option: '기본', price: 15000, category: '초밥' },
+    { id: 'menu-11', name: '새우튀김', option: '바삭한 튀김 5개', price: 8000, category: '사이드' },
+  ],
+  'store-5': [
+    { id: 'menu-12', name: '짜장면', option: '기본', price: 7000, category: '면' },
+    { id: 'menu-13', name: '짬뽕', option: '얼큰한 국물', price: 8000, category: '면' },
+    { id: 'menu-14', name: '탕수육', option: '중(小)', price: 18000, category: '요리' },
+  ],
+  'store-6': [
+    { id: 'menu-15', name: '엽기 떡볶이', option: '2인분', price: 13000, category: '떡볶이' },
+    { id: 'menu-16', name: '로제 떡볶이', option: '2인분', price: 14000, category: '떡볶이' },
+    { id: 'menu-17', name: '순대', option: '한 접시', price: 6000, category: '분식' },
+  ],
+  'store-7': [
+    { id: 'menu-18', name: '곱창전골', option: '2인분', price: 25000, category: '곱창' },
+    { id: 'menu-19', name: '닭발', option: '매운맛', price: 18000, category: '안주' },
+    { id: 'menu-20', name: '골뱅이무침', option: '소면 사리 포함', price: 20000, category: '안주' },
+  ],
+  'store-8': [
+    { id: 'menu-21', name: '콤비네이션 피자', option: 'L 사이즈', price: 19000, category: '피자' },
+    { id: 'menu-22', name: '페퍼로니 피자', option: 'L 사이즈', price: 20000, category: '피자' },
+    { id: 'menu-23', name: '갈릭 브레드', option: '기본', price: 5000, category: '사이드' },
+  ],
+  'store-9': [
+    { id: 'menu-24', name: '티라미수', option: '조각 케이크', price: 6500, category: '케이크' },
+    { id: 'menu-25', name: '마카롱 세트', option: '6구', price: 12000, category: '마카롱' },
+    { id: 'menu-26', name: '아이스 아메리카노', option: 'ICE', price: 4500, category: '음료' },
   ],
 }
 

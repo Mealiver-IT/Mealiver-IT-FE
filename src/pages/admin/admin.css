@@ -1,0 +1,328 @@
+/* 관리자 화면 전용 레이아웃 - 소비자 앱의 CSS 변수(색/서체 토큰, App.css)는 그대로 재사용하고
+   .phone-frame 폭 제약만 벗어난 넓은 데스크톱 레이아웃을 새로 정의한다. */
+
+.admin-shell {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-brand {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: var(--display-tracking);
+}
+
+.admin-nav {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.admin-nav-link {
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  color: var(--text-soft);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.admin-nav-link.active {
+  font-weight: 800;
+  color: var(--nav-active-color);
+  background: var(--nav-active-bg);
+}
+
+.admin-content {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-page-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: var(--display-tracking);
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  border: var(--card-border);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-table th {
+  color: var(--text-soft);
+  font-weight: 700;
+  background: var(--surface-2);
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.admin-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  max-width: 640px;
+}
+
+.admin-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-form-field.span-2 {
+  grid-column: 1 / -1;
+}
+
+.admin-form-field input,
+.admin-form-field select {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.admin-form-field input:disabled,
+.admin-form-field select:disabled {
+  opacity: 0.5;
+}
+
+.admin-form-hint {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+}
+
+.admin-form-error {
+  font-size: 0.78rem;
+  color: var(--danger);
+}
+
+.admin-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.admin-status-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.admin-status-pill.READY {
+  background: var(--secondary-soft);
+  color: var(--secondary);
+}
+
+.admin-status-pill.OPEN {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.admin-status-pill.CLOSED {
+  background: var(--surface-2);
+  color: var(--text-soft);
+}
+
+.admin-stock-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-stock-numbers {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-display);
+}
+
+.admin-stock-numbers .num {
+  font-size: 1.8rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-soft);
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.admin-live-dot.connected {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 실시간 재고 추이 차트 (CampaignStockChart) - dataviz 스킬 마크 스펙: 2px 라인, ~10% 영역 채움,
+   헤어라인 그리드, 크로스헤어+툴팁. 단일 시리즈라 범례 없음(카드 제목이 이미 설명). */
+.stock-chart-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.stock-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.stock-chart-gridline {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.stock-chart-axis-label {
+  fill: var(--text-soft);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-chart-area {
+  fill: color-mix(in srgb, var(--accent) 10%, transparent);
+  stroke: none;
+}
+
+.stock-chart-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stock-chart-crosshair {
+  stroke: var(--text-soft);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.stock-chart-dot {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.stock-chart-tooltip {
+  position: absolute;
+  transform: translate(-50%, -110%);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 10px;
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stock-chart-tooltip strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.stock-chart-tooltip span {
+  color: var(--text-soft);
+  font-size: 0.72rem;
+}
+
+.stock-chart-empty {
+  padding: 32px 12px;
+  text-align: center;
+  color: var(--text-soft);
+  font-size: 0.85rem;
+}
+
+.admin-search-input {
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* 유저 목록 검색 - ID/로그인ID/이름 3칸을 나란히 (필드별로 따로 찾는 용도라 통합검색창 대신 분리) */
+.admin-user-search-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-user-search-row .admin-form-field {
+  flex: 1;
+  min-width: 180px;
+}
+
+.admin-user-search-row input {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+}

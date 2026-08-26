@@ -32,7 +32,7 @@ export default function AdminUserListPage() {
       <h1 className="admin-page-title">유저 목록</h1>
 
       {error && <p className="admin-form-error">{error}</p>}
-      {users === null && !error && <p className="empty-text">불러오는 중... (유저 수가 많아 시간이 걸릴 수 있습니다)</p>}
+      {users === null && !error && <p className="empty-text">불러오는 중...</p>}
       {users && (
         <p className="empty-text">
           총 {users.length.toLocaleString('ko-KR')}명 - 아래 세 칸 중 검색할 항목에만 입력하세요. (결과는 최대 {MAX_RESULTS}건까지 표시)

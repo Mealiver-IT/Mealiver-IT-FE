@@ -286,7 +286,6 @@
   height: auto;
   display: block;
   touch-action: none;
-  cursor: crosshair;
 }
 
 .stock-chart-gridline {

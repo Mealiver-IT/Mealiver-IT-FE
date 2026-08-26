@@ -65,6 +65,7 @@ export function toFECoupon(issue) {
   return {
     id: `issue-${issue.id}`,
     issueId: issue.id,
+    campaignId: issue.campaignId ?? null, // 이벤트 목록/상세의 claimed 상태를 새로고침 후에도 서버 기준으로 복원하는 데 씀 (아래 참고)
     name: issue.campaignName ?? `쿠폰 (${issue.couponCode})`,
     discountType: issue.discountType,
     // RATE 쿠폰은 BE가 발급 시점에 TierDiscountPolicy.rateFor()로 계산해서 저장하는데, 그 값이
@@ -152,6 +153,30 @@ export function EventProvider({ children }) {
     refreshWalletCoupons()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // 캠페인 목록(events)과 지갑 쿠폰(walletCoupons)은 서로 다른 API를 독립적으로 호출해서 받아오므로
+  // (둘 중 뭐가 먼저 끝날지 순서 보장 없음), 새로고침 직후엔 eventStates.claimed가 항상 false로
+  // 초기화돼 있다(위 fetchCampaigns 이펙트 참고) — 이미 발급받은 이벤트인데도 "발급받기" 버튼이
+  // 다시 활성화되는 버그였음. walletCoupons에 해당 campaignId의 쿠폰이 있으면 그 이벤트의 claimed를
+  // true로 되돌려서 서버 상태와 맞춘다. GET /api/members/me/coupons는 ISSUED(사용 가능) 쿠폰만
+  // 내려주므로, 이미 USED로 소진된 쿠폰의 이벤트는 이 로직으로는 복원되지 않는다(BE에 발급 이력
+  // 자체를 조회하는 API가 별도로 없음 - 필요해지면 추가 논의).
+  useEffect(() => {
+    if (events.length === 0 || walletCoupons.length === 0) return
+    const claimedCampaignIds = new Set(walletCoupons.map((c) => c.campaignId).filter((id) => id != null))
+    if (claimedCampaignIds.size === 0) return
+    setEventStates((prev) => {
+      let changed = false
+      const next = { ...prev }
+      events.forEach((event) => {
+        if (claimedCampaignIds.has(event.campaignId) && next[event.eventId] && !next[event.eventId].claimed) {
+          next[event.eventId] = { ...next[event.eventId], claimed: true }
+          changed = true
+        }
+      })
+      return changed ? next : prev
+    })
+  }, [events, walletCoupons])
 
   // 마운트 시 실제 멤버십 계급 조회 시도 (GET /api/members/me/membership). 실패하면 mock 기본 계급 유지.
   useEffect(() => {

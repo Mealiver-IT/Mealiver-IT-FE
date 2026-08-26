@@ -77,6 +77,9 @@ export function toFECoupon(issue) {
     discountValue: isRate ? Number(issue.discountValue) * 100 : Number(issue.discountValue),
     maxDiscount: issue.maxDiscountAmount != null ? Number(issue.maxDiscountAmount) : undefined,
     validUntil: issue.validUntil ?? null, // 쿠폰함 화면에서 "~까지 사용 가능" 표시용. mock 쿠폰엔 없음(null)
+    // BE CouponStatus: ISSUED/USED/CANCELED/EXPIRED. GET .../coupons(ISSUED만)로 온 건 항상 ISSUED,
+    // GET .../coupons/all로 온 건 실제 상태 그대로 - 쿠폰함이 "사용 가능"/"지난 쿠폰"을 나눌 때 씀.
+    status: issue.status ?? 'ISSUED',
   }
 }
 

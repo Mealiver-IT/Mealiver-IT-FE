@@ -9,14 +9,23 @@ import { API_BASE_URL } from '../api/config'
 //
 // history: 부하테스트 중 재고가 빠지는 걸 실시간 차트로 보여주기 위한 시계열 샘플(CampaignStockChart
 // 전용). snapshot/update처럼 remainingStock을 담은 이벤트마다 {t, remainingStock} 포인트를 추가한다.
-// 초당 수십~수백 건씩 올 수 있어(발급마다 broadcast) 무한정 쌓지 않고 최근 MAX_HISTORY_POINTS개로 제한.
+//
+// 발급마다 SSE update가 하나씩 오는데(CampaignStockEmitterRegistry.broadcast(), 스로틀 없음),
+// 실측상 5분 안쪽으로 완판되는 캠페인도 발급 건수 자체는 수천 건을 넘는다 - 예전 캡(300)으로는
+// 소진 초반(100% 근처, 제일 극적인 구간)이 몇 초 만에 밀려나가 버렸다(2026-08-26 피드백).
+// MIN_POINT_INTERVAL_MS로 "실제 새 점을 추가하는" 주기 자체를 스로틀해서(그 사이엔 마지막 점의
+// 값만 최신으로 갱신) 발급이 아무리 몰려도 시간당 점 개수가 일정하게 유지되도록 했다 - 5분 내내
+// 몰아쳐도 최대 300000ms/MIN_POINT_INTERVAL_MS = 1200개 정도라 MAX_HISTORY_POINTS(1500) 안에 다 담긴다.
 //
 // 그런데 발급/재동기화가 실제로 일어날 때만 찍으면, 부하테스트 시작 전이나 트래픽이 뜸한 구간엔
 // 스냅샷 1개뿐이라 그래프 자체가 안 그려진다(선을 그으려면 점이 최소 2개 필요). 그래서 이벤트와
 // 별개로 HEARTBEAT_INTERVAL_MS마다 "지금 값 그대로"를 찍는 하트비트를 추가한다 - 변화가 없으면
 // 평평한 선이 이어지고, 변화가 있으면 그 사이에 실제 이벤트 점이 끼어들어 그대로 드러난다.
-export const MAX_HISTORY_POINTS = 300
+// 다 팔리고 나면(soldOut) 더 찍을 이유가 없어서 하트비트를 멈춘다 - 안 그러면 그래프 끝에 의미
+// 없이 늘어지는 평평한 꼬리만 계속 길어진다(발표 화면이 지저분해짐, 2026-08-26 피드백).
+export const MAX_HISTORY_POINTS = 1500
 export const HEARTBEAT_INTERVAL_MS = 5000
+export const MIN_POINT_INTERVAL_MS = 250
 
 export const INITIAL_STOCK_STREAM_STATE = {
   totalStock: null,
@@ -38,6 +47,12 @@ export function parseSseData(rawData) {
 }
 
 function appendHistoryPoint(history, remainingStock, now) {
+  const last = history[history.length - 1]
+  // 스로틀 윈도우 안이면 새 점을 늘리지 않고 마지막 점의 값만 최신으로 덮어쓴다 - x축 해상도는
+  // 그대로 두되(점 개수를 안 늘림) 값 자체는 놓치지 않는다.
+  if (last && now - last.t < MIN_POINT_INTERVAL_MS) {
+    return [...history.slice(0, -1), { t: last.t, remainingStock }]
+  }
   const next = [...history, { t: now, remainingStock }]
   return next.length > MAX_HISTORY_POINTS ? next.slice(next.length - MAX_HISTORY_POINTS) : next
 }
@@ -75,8 +90,10 @@ export function applyStockStreamEvent(state, eventName, rawData, now = Date.now(
 }
 
 // remainingStock을 아직 모르면(최초 snapshot 전) 아무것도 하지 않는다 - 찍을 값이 없음.
+// 다 팔린 뒤(soldOut)에도 멈춘다 - 더 찍어봐야 바닥에 붙은 평평한 꼬리만 늘어날 뿐이라
+// 그래프가 소진되는 순간 그대로 멈춰서 끝나는 게 발표용으로 더 깔끔하다.
 export function appendHeartbeat(state, now = Date.now()) {
-  if (state.remainingStock == null) return state
+  if (state.remainingStock == null || state.soldOut) return state
   return { ...state, history: appendHistoryPoint(state.history, state.remainingStock, now) }
 }
 

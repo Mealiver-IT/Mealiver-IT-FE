@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { deleteCampaign, fetchAllCampaigns } from '../../api/admin/campaigns'
 import { CAMPAIGN_STATUS_LABELS, formatDiscount } from '../../utils/campaignAdmin'
+import { formatDateTime } from '../../utils/datetime'
 import { tierLabel } from '../../utils/membership'
 
 // GET /api/campaigns 목록 + 삭제(DELETE /api/campaigns/{id}).
@@ -40,7 +41,7 @@ export default function AdminCampaignListPage() {
     <div className="admin-section">
       <div className="admin-page-header">
         <h1 className="admin-page-title">캠페인 관리</h1>
-        <Link to="/admin/campaigns/new" className="btn btn-block-outline">
+        <Link to="/admin/campaigns/new" className="admin-btn-outline">
           + 새 캠페인 등록
         </Link>
       </div>
@@ -80,7 +81,7 @@ export default function AdminCampaignListPage() {
                   </td>
                   <td>{c.minMembershipTier ? tierLabel(c.minMembershipTier) : '전체'}</td>
                   <td>{c.coupon ? formatDiscount(c.coupon.discountType, c.coupon.discountValue) : '-'}</td>
-                  <td>{c.openAt ?? '-'}</td>
+                  <td>{formatDateTime(c.openAt) ?? '-'}</td>
                   <td>
                     <button
                       type="button"

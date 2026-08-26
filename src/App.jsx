@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import './App.css'
 import { CartProvider } from './context/CartContext'
 import { EventProvider } from './context/EventContext'
@@ -15,6 +15,7 @@ import CouponWalletPage from './pages/CouponWalletPage'
 import OrderCompletePage from './pages/OrderCompletePage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import AdminLayout from './pages/admin/AdminLayout'
+import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminCampaignListPage from './pages/admin/AdminCampaignListPage'
 import AdminCampaignFormPage from './pages/admin/AdminCampaignFormPage'
 import AdminCampaignDetailPage from './pages/admin/AdminCampaignDetailPage'
@@ -56,7 +57,7 @@ function App() {
   return (
     <Routes>
       <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<Navigate to="/admin/campaigns" replace />} />
+        <Route index element={<AdminDashboardPage />} />
         <Route path="campaigns" element={<AdminCampaignListPage />} />
         <Route path="campaigns/new" element={<AdminCampaignFormPage />} />
         <Route path="campaigns/:campaignId" element={<AdminCampaignDetailPage />} />

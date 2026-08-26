@@ -2,39 +2,50 @@
    .phone-frame 폭 제약만 벗어난 넓은 데스크톱 레이아웃을 새로 정의한다. */
 
 .admin-shell {
+  display: flex;
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
 }
 
-.admin-topbar {
+/* 좌측 고정 사이드바 - 화면 스크롤과 무관하게 항상 붙어있도록 sticky.
+   캠페인 목록 표(오픈 시각까지 8개 컬럼)가 가로 스크롤 없이 한 화면에 들어오도록 폭을 줄였다
+   (2026-08-26 피드백 - 예전 220px는 삭제 버튼이 스크롤해야 보였음). */
+.admin-sidebar {
+  width: 184px;
+  flex-shrink: 0;
   display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 14px 24px;
+  flex-direction: column;
+  gap: 28px;
+  padding: 18px 12px;
   background: var(--surface);
-  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
 .admin-brand {
   font-family: var(--font-display);
   font-weight: 800;
+  font-size: 0.95rem;
   letter-spacing: var(--display-tracking);
+  padding: 0 8px;
 }
 
-.admin-nav {
+.admin-nav-vertical {
   display: flex;
+  flex-direction: column;
   gap: 4px;
-  flex: 1;
 }
 
 .admin-nav-link {
-  padding: 8px 14px;
+  padding: 9px 12px;
   border-radius: var(--radius-pill);
   text-decoration: none;
   color: var(--text-soft);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .admin-nav-link.active {
@@ -43,9 +54,15 @@
   background: var(--nav-active-bg);
 }
 
+.admin-sidebar-footer {
+  margin-top: auto;
+  padding: 0 6px;
+}
+
 .admin-content {
-  max-width: 1080px;
-  margin: 0 auto;
+  flex: 1;
+  min-width: 0;
+  max-width: 1140px;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -64,6 +81,37 @@
   font-weight: 800;
   font-size: 1.3rem;
   letter-spacing: var(--display-tracking);
+  white-space: nowrap;
+}
+
+/* 관리자용 보조 액션 버튼 - 소비자 앱의 .btn-block-outline(width:100%, 세로로 쌓는 모바일 레이아웃용)을
+   그대로 갖다 쓰면 가로 배치(flex row)에서 폭을 다 먹어버려 옆 요소가 밀린다(제목이 이상하게
+   줄바꿈되는 등). 관리자는 항상 가로 배치라 auto 폭의 작은 버튼이 필요해서 별도로 둔다. */
+.admin-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: auto;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: box-shadow 0.18s ease, transform 0.1s ease;
+}
+
+.admin-btn-outline:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.admin-btn-outline:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .admin-table-wrap {
@@ -77,14 +125,14 @@
 .admin-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   white-space: nowrap;
 }
 
 .admin-table th,
 .admin-table td {
   text-align: left;
-  padding: 10px 14px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -92,6 +140,15 @@
   color: var(--text-soft);
   font-weight: 700;
   background: var(--surface-2);
+}
+
+/* 캠페인 이름 링크 - 아무 스타일도 없어서 브라우저 기본값(방문 전 파랑/방문 후 보라~핑크)이
+   그대로 나왔다(2026-08-26 피드백: 한 번 눌렀다 오면 핑크빛으로 바뀌는 게 어색함). 방문 여부와
+   무관하게 항상 같은 색으로 고정. */
+.admin-table a,
+.admin-table a:visited {
+  color: var(--accent);
+  text-decoration: none;
 }
 
 .admin-table tbody tr:last-child td {
@@ -287,6 +344,71 @@
 .stock-chart-tooltip span {
   color: var(--text-soft);
   font-size: 0.72rem;
+}
+
+/* 대시보드 (AdminDashboardPage) */
+.dashboard-kpi-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.dashboard-kpi-card {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-kpi-value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.dashboard-mini-card {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.18s ease;
+}
+
+.dashboard-mini-card:hover {
+  box-shadow: var(--shadow-card);
+}
+
+.dashboard-mini-card-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-mini-card-numbers {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 4px 0 6px;
+  font-family: var(--font-display);
+}
+
+.dashboard-mini-card-numbers .num {
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .stock-chart-empty {

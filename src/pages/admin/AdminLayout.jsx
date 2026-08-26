@@ -3,13 +3,17 @@ import ThemeToggleButton from '../../components/ThemeToggleButton'
 import './admin.css'
 
 // 관리자 화면 전용 레이아웃 - 소비자 앱(.phone-frame, 모바일 폭 고정)과 분리된 넓은 데스크톱 레이아웃.
-// 로그인 시스템이 없으므로(src/api/config.js 참고) 별도 인증 게이트 없이 바로 진입 가능.
+// 좌측 사이드바 + 우측 콘텐츠 구성. 로그인 시스템이 없으므로(src/api/config.js 참고) 별도
+// 인증 게이트 없이 바로 진입 가능.
 export default function AdminLayout() {
   return (
     <div className="admin-shell">
-      <header className="admin-topbar">
+      <aside className="admin-sidebar">
         <div className="admin-brand">밀리버릿 관리자</div>
-        <nav className="admin-nav">
+        <nav className="admin-nav-vertical">
+          <NavLink to="/admin" end className={({ isActive }) => `admin-nav-link${isActive ? ' active' : ''}`}>
+            대시보드
+          </NavLink>
           <NavLink to="/admin/campaigns" className={({ isActive }) => `admin-nav-link${isActive ? ' active' : ''}`}>
             캠페인 관리
           </NavLink>
@@ -17,8 +21,10 @@ export default function AdminLayout() {
             유저 목록
           </NavLink>
         </nav>
-        <ThemeToggleButton />
-      </header>
+        <div className="admin-sidebar-footer">
+          <ThemeToggleButton />
+        </div>
+      </aside>
       <main className="admin-content">
         <Outlet />
       </main>

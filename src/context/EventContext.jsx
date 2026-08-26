@@ -7,20 +7,10 @@ import { fetchMembership } from '../api/membership'
 // 이벤트(선착순 캠페인) 목록/상태 관리 - 실제 DB 캠페인을 GET /api/campaigns로 불러와 이벤트 목록/상세
 // 화면에 노출한다. 실패하면(BE 미기동 등) 기존 mock 이벤트 2개로 대체 — 데모 연속성 유지.
 //
-// ⚠️ 임시 필터 (2026-08-20 팀 확인): 팀 공유 DB에 부하테스트/오염데이터 검증용 캠페인이 대량으로
-// 섞여 있어서(phase1-*, phase2-*, DIRTY_* 등, id 17번 이후 대부분), 정상적으로 등록된 캠페인만
-// 하드코딩으로 걸러낸다(id 2~16, id 1은 deploy-verify-campaign). 캠페인 테이블 자체엔 "정상/오염"을
-// 구분하는 필드가 없어서 ID 범위로 거르는 것 말고는 방법이 없다 — 데이터 정리가 끝나면 이 필터를 지우면 된다.
-//
 // status는 여기서 필터링하지 않는다 — CLOSED/READY 캠페인도 "마감"/"오픈 예정" 상태로 목록에 그대로
 // 노출한다(이벤트 기간 안이면 마감됐다는 사실 자체도 정보다, 그냥 안 보이게 숨기면 안 됨).
 // status는 정적 메타데이터가 아니라 eventStates에 넣어서 재고와 같이 폴링으로 계속 갱신한다 —
 // 누가 캠페인을 READY→OPEN으로 바꾸면 새로고침 없이도 화면에 반영되도록.
-const CLEAN_CAMPAIGN_ID_MIN = 2
-const CLEAN_CAMPAIGN_ID_MAX = 16
-function isCleanCampaignId(id) {
-  return id >= CLEAN_CAMPAIGN_ID_MIN && id <= CLEAN_CAMPAIGN_ID_MAX
-}
 
 // BE CampaignResponse -> FE 이벤트 카드 표시용 형태.
 // BE엔 "가게" 개념이 없어서(계급 산정용 최소 스키마) 캠페인명을 그대로 가게명 자리에 쓴다.
@@ -108,17 +98,17 @@ export function EventProvider({ children }) {
   const [walletCoupons, setWalletCoupons] = useState(defaultCoupons)
   const [membershipTier, setMembershipTier] = useState(DEFAULT_MEMBERSHIP_TIER)
 
-  // 마운트 시 실제 캠페인 목록 조회 (GET /api/campaigns). 성공하면 정상 캠페인(2~16번, 위 주석 참고)만
-  // 걸러서 이벤트 목록으로 쓰고, 실패하면(BE 미연결 등) 기존 mock 이벤트 2개로 대체한다.
+  // 마운트 시 실제 캠페인 목록 조회 (GET /api/campaigns). 성공하면 전체 캠페인을 이벤트 목록으로 쓰고,
+  // 실패하면(BE 미연결 등) 기존 mock 이벤트 2개로 대체한다.
   useEffect(() => {
     fetchCampaigns()
       .then((campaigns) => {
-        const clean = (Array.isArray(campaigns) ? campaigns : []).filter((c) => isCleanCampaignId(c.id))
-        const mapped = clean.map(toFEEvent)
+        const list = Array.isArray(campaigns) ? campaigns : []
+        const mapped = list.map(toFEEvent)
         setEvents(mapped)
         setEventStates(
           Object.fromEntries(
-            clean.map((c) => [
+            list.map((c) => [
               String(c.id),
               { remainingStock: c.remainingStock, claimed: false, soldOut: c.remainingStock <= 0, status: c.status },
             ]),

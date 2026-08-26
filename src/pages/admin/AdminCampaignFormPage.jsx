@@ -20,11 +20,14 @@ const INITIAL_VALUES = {
   maxDiscountAmount: '',
   validHours: '24',
   scheduledOpenAt: suggestElevenAmOpenValue(),
+  scheduledCloseAt: '',
 }
 
 // POST /api/campaigns - 캠페인 등록(=쿠폰 정책도 동시 등록, 1:1). scheduledOpenAt을 지정하면
 // CampaignScheduledOpenBatchJob이 그 시각(1초 주기 폴링)에 자동으로 OPEN 전환한다 - "정확히
 // 11시 땡"은 이 값을 정확히 넣는 것으로 충분하고, 별도 크론/타이머를 프론트에서 만들 필요 없음.
+// scheduledCloseAt은 BE의 closeAt 컬럼에 미리 저장만 해둔다(오픈 시 덮어쓰지 않고 보존됨) - 자동
+// 마감 배치는 없어서 순수 표시/기록용이고, 실제 마감은 여전히 수동 "지금 마감" 버튼으로 처리한다.
 export default function AdminCampaignFormPage() {
   const navigate = useNavigate()
   const [values, setValues] = useState(INITIAL_VALUES)
@@ -126,8 +129,18 @@ export default function AdminCampaignFormPage() {
           <span className="admin-form-hint">서버(로컬 Docker Compose) 시계 기준 한국시간으로 동작합니다. 1초 주기로 확인해 정확히 그 시각에 자동 오픈됩니다.</span>
         </label>
 
+        <label className="admin-form-field">
+          마감 예약 시각 (비우면 무기한)
+          <input type="datetime-local" step="1" value={values.scheduledCloseAt} onChange={set('scheduledCloseAt')} />
+          {errors.scheduledCloseAt ? (
+            <span className="admin-form-error">{errors.scheduledCloseAt}</span>
+          ) : (
+            <span className="admin-form-hint">아직 자동으로 마감하는 배치는 없어서, 캠페인 상세에 예정 시각으로만 표시됩니다. 실제 마감은 상세 화면의 "지금 마감" 버튼으로 수동 처리하세요.</span>
+          )}
+        </label>
+
         <div className="admin-form-actions">
-          <button type="submit" className="btn btn-block-outline" disabled={submitting} style={{ width: 'auto' }}>
+          <button type="submit" className="admin-btn-outline" disabled={submitting}>
             {submitting ? '등록 중...' : '캠페인 등록'}
           </button>
           {submitError && <span className="admin-form-error">{submitError}</span>}

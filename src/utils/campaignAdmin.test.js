@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   apiValueToLocalDateTimeInput,
+  formatIssuedDiscount,
   localDateTimeInputToApiValue,
   RATE_DISCOUNT_VALUE_PLACEHOLDER,
   suggestElevenAmOpenValue,
@@ -107,6 +108,7 @@ describe('toCampaignCreateRequest', () => {
       maxDiscountAmount: '',
       validHours: '24',
       scheduledOpenAt: '2026-08-25T11:00',
+      scheduledCloseAt: '2026-08-26T11:00',
     })
     expect(request).toEqual({
       name: '오픈런 할인쿠폰',
@@ -118,6 +120,7 @@ describe('toCampaignCreateRequest', () => {
       maxDiscountAmount: null,
       validHours: 24,
       scheduledOpenAt: '2026-08-25T11:00:00',
+      scheduledCloseAt: '2026-08-26T11:00:00',
     })
   })
 
@@ -132,9 +135,67 @@ describe('toCampaignCreateRequest', () => {
       maxDiscountAmount: '',
       validHours: '48',
       scheduledOpenAt: '',
+      scheduledCloseAt: '',
     })
     expect(request.discountValue).toBe(RATE_DISCOUNT_VALUE_PLACEHOLDER)
     expect(request.minMembershipTier).toBeNull()
     expect(request.scheduledOpenAt).toBeNull()
+    expect(request.scheduledCloseAt).toBeNull()
+  })
+})
+
+describe('formatIssuedDiscount', () => {
+  it('shows the exact tier-resolved percentage for RATE type', () => {
+    expect(formatIssuedDiscount('RATE', 0.3, 'CORPORAL')).toBe('30% 할인')
+    expect(formatIssuedDiscount('RATE', 0.5, 'SERGEANT')).toBe('50% 할인')
+    expect(formatIssuedDiscount('RATE', 0.1, 'PRIVATE')).toBe('10% 할인')
+  })
+
+  it('shows the fixed amount for FIXED type', () => {
+    expect(formatIssuedDiscount('FIXED', 3000, 'PRIVATE')).toBe('3,000원 할인')
+  })
+
+  it('falls back to the generic RATE label when the tier is unknown', () => {
+    expect(formatIssuedDiscount('RATE', 0.3, null)).toBe('계급별 고정 할인율 적용 (10~50%)')
+  })
+})
+
+describe('validateCampaignForm - scheduledCloseAt ordering', () => {
+  const baseValid = {
+    name: '오픈런 할인쿠폰',
+    totalStock: '10000',
+    discountType: 'FIXED',
+    discountValue: '3000',
+    validHours: '24',
+  }
+
+  it('rejects a close time at or before the open time', () => {
+    const { valid, errors } = validateCampaignForm({
+      ...baseValid,
+      scheduledOpenAt: '2026-08-25T11:00',
+      scheduledCloseAt: '2026-08-25T11:00',
+    })
+    expect(valid).toBe(false)
+    expect(errors.scheduledCloseAt).toBeDefined()
+  })
+
+  it('accepts a close time after the open time', () => {
+    const { valid, errors } = validateCampaignForm({
+      ...baseValid,
+      scheduledOpenAt: '2026-08-25T11:00',
+      scheduledCloseAt: '2026-08-26T11:00',
+    })
+    expect(valid).toBe(true)
+    expect(errors.scheduledCloseAt).toBeUndefined()
+  })
+
+  it('allows a close time with no open time set', () => {
+    const { valid, errors } = validateCampaignForm({
+      ...baseValid,
+      scheduledOpenAt: '',
+      scheduledCloseAt: '2026-08-26T11:00',
+    })
+    expect(valid).toBe(true)
+    expect(errors.scheduledCloseAt).toBeUndefined()
   })
 })

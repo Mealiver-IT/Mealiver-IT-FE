@@ -63,6 +63,7 @@ export default function AdminCampaignListPage() {
                 <th>대상 등급</th>
                 <th>할인</th>
                 <th>오픈 시각</th>
+                <th>마감 시각</th>
                 <th></th>
               </tr>
             </thead>
@@ -82,6 +83,7 @@ export default function AdminCampaignListPage() {
                   <td>{c.minMembershipTier ? tierLabel(c.minMembershipTier) : '전체'}</td>
                   <td>{c.coupon ? formatDiscount(c.coupon.discountType, c.coupon.discountValue) : '-'}</td>
                   <td>{formatDateTime(c.openAt) ?? '-'}</td>
+                  <td>{formatDateTime(c.closeAt) ?? '무기한'}</td>
                   <td>
                     <button
                       type="button"

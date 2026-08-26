@@ -5,6 +5,7 @@ import {
   INITIAL_STOCK_STREAM_STATE,
   loadPersistedHistory,
   MAX_HISTORY_POINTS,
+  MIN_POINT_INTERVAL_MS,
   parseSseData,
   savePersistedHistory,
 } from './useCampaignStockStream'
@@ -53,12 +54,29 @@ describe('applyStockStreamEvent', () => {
   })
 
   it('caps history at MAX_HISTORY_POINTS, dropping the oldest samples first', () => {
-    const longHistory = Array.from({ length: MAX_HISTORY_POINTS }, (_, i) => ({ t: i, remainingStock: MAX_HISTORY_POINTS - i }))
+    // 각 점 사이 간격이 스로틀(MIN_POINT_INTERVAL_MS)보다 커야 실제로 매번 새 점이 늘어난다.
+    const step = MIN_POINT_INTERVAL_MS + 1
+    const longHistory = Array.from({ length: MAX_HISTORY_POINTS }, (_, i) => ({ t: i * step, remainingStock: MAX_HISTORY_POINTS - i }))
     const state = { ...INITIAL_STOCK_STREAM_STATE, history: longHistory }
-    const next = applyStockStreamEvent(state, 'update', JSON.stringify({ campaignId: 1, remainingStock: 1 }), 99999)
+    const now = MAX_HISTORY_POINTS * step + 99999
+    const next = applyStockStreamEvent(state, 'update', JSON.stringify({ campaignId: 1, remainingStock: 1 }), now)
     expect(next.history).toHaveLength(MAX_HISTORY_POINTS)
     expect(next.history[0]).toEqual(longHistory[1]) // 가장 오래된 샘플(index 0)이 밀려나감
-    expect(next.history[next.history.length - 1]).toEqual({ t: 99999, remainingStock: 1 })
+    expect(next.history[next.history.length - 1]).toEqual({ t: now, remainingStock: 1 })
+  })
+
+  it('throttles rapid-fire updates - updates the last point in place instead of growing the array', () => {
+    const state = { ...INITIAL_STOCK_STREAM_STATE, totalStock: 10000, remainingStock: 100, history: [{ t: 1000, remainingStock: 100 }] }
+    // 스로틀 윈도우 안(MIN_POINT_INTERVAL_MS 미만 경과)에 도착한 이벤트 - 점 개수는 그대로,
+    // 마지막 점의 값만 최신으로 갱신돼야 한다(타임스탬프는 원래 점 것을 유지).
+    const next = applyStockStreamEvent(state, 'update', JSON.stringify({ campaignId: 1, remainingStock: 50 }), 1000 + MIN_POINT_INTERVAL_MS - 1)
+    expect(next.history).toEqual([{ t: 1000, remainingStock: 50 }])
+  })
+
+  it('does not throttle when enough time has passed since the last point', () => {
+    const state = { ...INITIAL_STOCK_STREAM_STATE, totalStock: 10000, remainingStock: 100, history: [{ t: 1000, remainingStock: 100 }] }
+    const next = applyStockStreamEvent(state, 'update', JSON.stringify({ campaignId: 1, remainingStock: 50 }), 1000 + MIN_POINT_INTERVAL_MS)
+    expect(next.history).toEqual([{ t: 1000, remainingStock: 100 }, { t: 1000 + MIN_POINT_INTERVAL_MS, remainingStock: 50 }])
   })
 
   it('updates only status on a status event', () => {
@@ -94,12 +112,20 @@ describe('appendHeartbeat', () => {
     expect(next).toBe(INITIAL_STOCK_STREAM_STATE)
   })
 
+  it('does nothing once the campaign has sold out - stops the flat tail from growing', () => {
+    const state = { ...INITIAL_STOCK_STREAM_STATE, remainingStock: 0, soldOut: true, history: [{ t: 1000, remainingStock: 0 }] }
+    const next = appendHeartbeat(state, 6000)
+    expect(next).toBe(state)
+  })
+
   it('respects the same MAX_HISTORY_POINTS cap as event-driven updates', () => {
-    const longHistory = Array.from({ length: MAX_HISTORY_POINTS }, (_, i) => ({ t: i, remainingStock: 7 }))
+    const step = MIN_POINT_INTERVAL_MS + 1
+    const longHistory = Array.from({ length: MAX_HISTORY_POINTS }, (_, i) => ({ t: i * step, remainingStock: 7 }))
     const state = { ...INITIAL_STOCK_STREAM_STATE, remainingStock: 7, history: longHistory }
-    const next = appendHeartbeat(state, 99999)
+    const now = MAX_HISTORY_POINTS * step + 99999
+    const next = appendHeartbeat(state, now)
     expect(next.history).toHaveLength(MAX_HISTORY_POINTS)
-    expect(next.history[next.history.length - 1]).toEqual({ t: 99999, remainingStock: 7 })
+    expect(next.history[next.history.length - 1]).toEqual({ t: now, remainingStock: 7 })
   })
 })
 

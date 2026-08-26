@@ -63,6 +63,10 @@
   flex: 1;
   min-width: 0;
   max-width: 1140px;
+  /* 사이드바 도입 때 빠졌던 가운데 정렬 - flex 아이템도 margin:auto로 남는 공간을 양쪽에
+     똑같이 흡수한다. 없으면 넓은 화면에서 콘텐츠가 사이드바 쪽으로 쏠리고 오른쪽만
+     휑하게 남는다(2026-08-26 피드백: "다 조금씩 왼쪽에 쏠려있다"). */
+  margin: 0 auto;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -282,7 +286,6 @@
   height: auto;
   display: block;
   touch-action: none;
-  cursor: crosshair;
 }
 
 .stock-chart-gridline {

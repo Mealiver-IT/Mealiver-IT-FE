@@ -573,6 +573,16 @@ body {
   margin-left: 4px;
 }
 
+/* 쿠폰함 "지난 쿠폰"(사용함/회수됨/만료됨) - 사용 가능한 쿠폰과 헷갈리지 않게 흐리게, 배지도 톤다운 */
+.past-coupon {
+  opacity: 0.55;
+}
+
+.badge-muted {
+  border-color: var(--text-soft);
+  color: var(--text-soft);
+}
+
 .tab-row {
   display: flex;
   gap: 6px;

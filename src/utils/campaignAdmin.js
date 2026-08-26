@@ -1,6 +1,8 @@
 // 관리자 캠페인/쿠폰 CRUD 화면 공용 순수 로직.
 // BE DTO 기준: CampaignCreateRequest(name, totalStock, minMembershipTier, discountType,
-// discountValue, minOrderAmount, maxDiscountAmount, validHours, scheduledOpenAt)
+// discountValue, minOrderAmount, maxDiscountAmount, validHours, scheduledOpenAt, scheduledCloseAt)
+
+import { RATE_DISCOUNT_BY_TIER } from './membership'
 
 export const DISCOUNT_TYPES = ['FIXED', 'RATE']
 
@@ -75,6 +77,12 @@ export function validateCampaignForm(values) {
     errors.validHours = '유효 시간은 1 이상의 정수(시간)여야 합니다.'
   }
 
+  // 둘 다 지정된 경우에만 순서 검증 - BE에는 없는 규칙이지만(선택 입력이라 강제 못 함)
+  // 마감이 오픈보다 빠른 건 명백히 실수라 폼 단에서 미리 막는다.
+  if (values.scheduledOpenAt && values.scheduledCloseAt && values.scheduledCloseAt <= values.scheduledOpenAt) {
+    errors.scheduledCloseAt = '마감 예약 시각은 오픈 예약 시각보다 나중이어야 합니다.'
+  }
+
   return { valid: Object.keys(errors).length === 0, errors }
 }
 
@@ -90,6 +98,7 @@ export function toCampaignCreateRequest(values) {
     maxDiscountAmount: values.maxDiscountAmount === '' || values.maxDiscountAmount == null ? null : Number(values.maxDiscountAmount),
     validHours: Number(values.validHours),
     scheduledOpenAt: localDateTimeInputToApiValue(values.scheduledOpenAt),
+    scheduledCloseAt: localDateTimeInputToApiValue(values.scheduledCloseAt),
   }
 }
 
@@ -98,4 +107,15 @@ export function formatDiscount(discountType, discountValue) {
   if (discountType === 'RATE') return '계급별 고정 할인율 적용 (10~50%)'
   if (discountType === 'FIXED') return `${Number(discountValue).toLocaleString('ko-KR')}원 할인`
   return '-'
+}
+
+// 발급된 쿠폰(CouponIssueAdminResponse) 표시용 - 캠페인 폼과 달리 여기선 발급 시점에 실제
+// 적용된 계급 할인율을 알 수 있어(issuedMembershipTier 스냅샷) "계급별 고정 할인율 적용"이라는
+// 뭉뚱그린 문구 대신 정확히 몇 %인지 보여준다 (RATE_DISCOUNT_BY_TIER, BE TierDiscountPolicy.java와 동일한 표).
+export function formatIssuedDiscount(discountType, discountValue, issuedMembershipTier) {
+  if (discountType === 'RATE') {
+    const pct = RATE_DISCOUNT_BY_TIER[issuedMembershipTier]
+    if (pct != null) return `${pct}% 할인`
+  }
+  return formatDiscount(discountType, discountValue)
 }

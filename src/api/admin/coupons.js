@@ -10,3 +10,14 @@ export function revokeCoupon(issueId) {
     idempotencyKey: generateIdempotencyKey(),
   })
 }
+
+// GET /api/admin/campaigns/{campaignId}/coupon-issues - 캠페인별 발급 목록 브라우징(최대 100건/페이지).
+export function fetchCouponIssuesByCampaign(campaignId, { status = 'ISSUED', page = 0, size = 20 } = {}) {
+  const params = new URLSearchParams({ status, page: String(page), size: String(size) })
+  return apiFetch(`/api/admin/campaigns/${campaignId}/coupon-issues?${params}`)
+}
+
+// GET /api/admin/campaigns/{campaignId}/coupon-issues/by-user/{userId} - 특정 유저의 발급 건 직접 조회.
+export function fetchCouponIssueByUser(campaignId, userId) {
+  return apiFetch(`/api/admin/campaigns/${campaignId}/coupon-issues/by-user/${userId}`)
+}

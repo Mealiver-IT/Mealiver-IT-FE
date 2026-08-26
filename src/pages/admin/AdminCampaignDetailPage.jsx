@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { deleteCampaign, fetchCampaignById, fetchCampaignStats, updateCampaignStatus } from '../../api/admin/campaigns'
 import { useCampaignStockStream } from '../../hooks/useCampaignStockStream'
 import { CAMPAIGN_STATUS_LABELS, formatDiscount } from '../../utils/campaignAdmin'
+import { formatDateTime } from '../../utils/datetime'
 import { tierLabel } from '../../utils/membership'
 import CampaignStockChart from './CampaignStockChart'
+import CouponRevokeSection from './CouponRevokeSection'
 
 // 캠페인 상세 = "쿠폰 조회"(쿠폰은 캠페인과 1:1이라 여기서 같이 보여줌) + 실시간 재고 현황
 // (GET /api/admin/campaigns/{id}/stream, SSE) + 발급 통계 + 수동 오픈/마감 + 삭제.
@@ -121,18 +123,20 @@ export default function AdminCampaignDetailPage() {
         ) : (
           <p className="empty-text">연결된 쿠폰 정책이 없습니다.</p>
         )}
-        <p className="empty-text">오픈 시각: {campaign.openAt ?? '미정 (예약 없음)'}</p>
-        <p className="empty-text">마감 시각: {campaign.closeAt ?? '무기한'}</p>
+        <p className="empty-text">오픈 시각: {formatDateTime(campaign.openAt) ?? '미정 (예약 없음)'}</p>
+        <p className="empty-text">마감 시각: {formatDateTime(campaign.closeAt) ?? '무기한'}</p>
       </div>
+
+      <CouponRevokeSection campaignId={campaignId} />
 
       <div className="admin-form-actions">
         {status !== 'OPEN' && (
-          <button type="button" className="btn btn-block-outline" style={{ width: 'auto' }} disabled={busy} onClick={handleManualOpen}>
+          <button type="button" className="admin-btn-outline" disabled={busy} onClick={handleManualOpen}>
             지금 수동 오픈
           </button>
         )}
         {status !== 'CLOSED' && (
-          <button type="button" className="btn btn-block-outline" style={{ width: 'auto' }} disabled={busy} onClick={handleClose}>
+          <button type="button" className="admin-btn-outline" disabled={busy} onClick={handleClose}>
             지금 마감
           </button>
         )}

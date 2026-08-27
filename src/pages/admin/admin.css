@@ -277,9 +277,13 @@
 }
 
 .admin-stock-numbers .num {
-  font-size: 1.8rem;
+  font-size: 2.6rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+
+.admin-stock-numbers .empty-text {
+  font-size: 1.1rem;
 }
 
 .admin-live-dot {

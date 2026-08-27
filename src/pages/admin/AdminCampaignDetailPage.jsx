@@ -8,6 +8,12 @@ import { tierLabel } from '../../utils/membership'
 import CampaignStockChart from './CampaignStockChart'
 import CouponRevokeSection from './CouponRevokeSection'
 
+// 누적 발급(stats.issuedCount)은 SSE가 아니라 REST 폴링으로만 갱신된다 - 재고/그래프는 실시간인데
+// 이 숫자만 페이지 진입 시 1회 조회 후 멈춰있던 버그(2026-08-27 피드백: "재고 다 털었는데도
+// 누적발급이 0에서 안 바뀜") 수정. 발급마다 SSE update가 오는 것과 별개로 이 값은 COUNT(*) 쿼리라
+// 매 이벤트마다 부르면 부하테스트 중 요청 폭주로 이어져 하트비트와 같은 주기로만 폴링한다.
+const STATS_POLL_INTERVAL_MS = 5000
+
 // 캠페인 상세 = "쿠폰 조회"(쿠폰은 캠페인과 1:1이라 여기서 같이 보여줌) + 실시간 재고 현황
 // (GET /api/admin/campaigns/{id}/stream, SSE) + 발급 통계 + 수동 오픈/마감 + 삭제.
 export default function AdminCampaignDetailPage() {
@@ -31,6 +37,14 @@ export default function AdminCampaignDetailPage() {
   }
 
   useEffect(load, [campaignId])
+
+  useEffect(() => {
+    if (!campaignId) return undefined
+    const timer = setInterval(() => {
+      fetchCampaignStats(campaignId).then(setStats).catch(() => {})
+    }, STATS_POLL_INTERVAL_MS)
+    return () => clearInterval(timer)
+  }, [campaignId])
 
   const handleManualOpen = async () => {
     setBusy(true)

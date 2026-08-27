@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   appendHeartbeat,
   applyStockStreamEvent,
+  clearPersistedHistory,
   INITIAL_STOCK_STREAM_STATE,
   loadPersistedHistory,
   MAX_HISTORY_POINTS,
@@ -16,6 +17,7 @@ function createFakeStorage() {
   return {
     getItem: (key) => (map.has(key) ? map.get(key) : null),
     setItem: (key, value) => map.set(key, value),
+    removeItem: (key) => map.delete(key),
   }
 }
 
@@ -163,5 +165,23 @@ describe('savePersistedHistory / loadPersistedHistory', () => {
     }
     expect(() => savePersistedHistory(1, { totalStock: 1, history: [] }, throwingStorage)).not.toThrow()
     expect(loadPersistedHistory(1, throwingStorage)).toBeNull()
+  })
+})
+
+describe('clearPersistedHistory', () => {
+  it('removes only the given campaign\'s stored history', () => {
+    const storage = createFakeStorage()
+    savePersistedHistory(1, { totalStock: 10, history: [{ t: 1, remainingStock: 5 }] }, storage)
+    savePersistedHistory(2, { totalStock: 20, history: [{ t: 1, remainingStock: 15 }] }, storage)
+
+    clearPersistedHistory(1, storage)
+
+    expect(loadPersistedHistory(1, storage)).toBeNull()
+    expect(loadPersistedHistory(2, storage).totalStock).toBe(20)
+  })
+
+  it('does not throw when storage access itself throws', () => {
+    const throwingStorage = { removeItem: () => { throw new Error('access denied') } }
+    expect(() => clearPersistedHistory(1, throwingStorage)).not.toThrow()
   })
 })

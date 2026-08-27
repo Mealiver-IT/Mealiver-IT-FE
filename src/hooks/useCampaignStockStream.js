@@ -129,6 +129,19 @@ export function savePersistedHistory(campaignId, { totalStock, history }, storag
   }
 }
 
+// "그래프 초기화" 버튼용 - 예전에 보고 갔던(몇십 분~몇 시간 전) 100% 지점이 sessionStorage에
+// 그대로 남아있으면, 방금 몇 초 만에 끝난 소진 구간이 x축 전체 시간(그 오래된 점 ~ 지금) 대비
+// 픽셀 몇 개로 압축돼서 그래프가 수직으로 뚝 떨어지는 것처럼 보인다(2026-08-27 실측 피드백:
+// "933분 전 100%, 12분 전 100%가 남아있어서 방금 턴 부하테스트가 직각으로 떨어져 보임").
+// 부하테스트 시작 전에 이 함수로 지운 뒤 페이지를 열어두면 그 시점부터 x축이 새로 시작된다.
+export function clearPersistedHistory(campaignId, storage = STORAGE) {
+  try {
+    storage?.removeItem(STORAGE_KEY_PREFIX + campaignId)
+  } catch {
+    // 접근 불가(시크릿 모드 등)는 조용히 무시 - 애초에 저장도 안 됐을 가능성이 높음
+  }
+}
+
 // 캠페인별 실시간 재고 현황(관리자 대시보드) 구독 훅.
 export function useCampaignStockStream(campaignId) {
   const [state, setState] = useState(INITIAL_STOCK_STREAM_STATE)
@@ -182,5 +195,13 @@ export function useCampaignStockStream(campaignId) {
     }
   }, [campaignId])
 
-  return state
+  // 저장된 히스토리와 현재 화면의 그래프 둘 다 비운다 - SSE 연결은 그대로 유지(재고/상태는
+  // 안 끊기고, 그래프 궤적만 지금 시점부터 새로 그려짐).
+  const resetHistory = () => {
+    if (!campaignId) return
+    clearPersistedHistory(campaignId)
+    setState((prev) => ({ ...prev, history: [] }))
+  }
+
+  return { ...state, resetHistory }
 }

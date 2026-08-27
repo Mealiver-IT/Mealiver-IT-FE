@@ -98,7 +98,12 @@ export default function AdminCampaignDetailPage() {
             <span className={`admin-live-dot${live.connected ? ' connected' : ''}`} />
             실시간 재고 현황
           </span>
-          {stats && <span className="empty-text">누적 발급 {stats.issuedCount.toLocaleString('ko-KR')}건</span>}
+          <span className="admin-stock-card-actions">
+            {stats && <span className="empty-text">누적 발급 {stats.issuedCount.toLocaleString('ko-KR')}건</span>}
+            <button type="button" className="admin-btn-ghost" onClick={live.resetHistory}>
+              그래프 초기화
+            </button>
+          </span>
         </div>
         <div className="admin-stock-numbers">
           <span className="num">{remainingStock.toLocaleString('ko-KR')}</span>

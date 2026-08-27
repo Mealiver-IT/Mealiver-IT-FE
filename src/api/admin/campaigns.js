@@ -38,3 +38,11 @@ export function updateCampaignStatus(id, { status, openAt, closeAt } = {}) {
 export function fetchCampaignStats(campaignId) {
   return apiFetch(`/api/admin/campaigns/${campaignId}/stats`)
 }
+
+// GET /api/campaigns/{campaignId}/stock - 잔여 재고만 가벼운 폴링용 (Redis 스냅샷 우선, BE 주석 참고).
+// 대시보드처럼 캠페인 여러 개를 동시에 보여줄 땐 이걸로 폴링한다 - SSE는 캠페인당 연결 하나를
+// 계속 물고 있어서 여러 개 열면 브라우저 오리진당 연결 제한(HTTP/1.1 기본 6개)에 부딪힌다
+// (2026-08-27 실측: OPEN 캠페인 6개 = SSE 6개 동시 연결로 대시보드 이탈 시 58초 멎음).
+export function fetchCampaignStock(campaignId) {
+  return apiFetch(`/api/campaigns/${campaignId}/stock`)
+}

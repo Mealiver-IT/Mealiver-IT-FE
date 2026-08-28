@@ -6,6 +6,7 @@
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![React Router](https://img.shields.io/badge/React_Router-7-CA4245?logo=reactrouter&logoColor=white)](https://reactrouter.com/)
 [![Vitest](https://img.shields.io/badge/Vitest-3-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Build](https://github.com/Mealiver-IT/Mealiver-IT-FE/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Mealiver-IT/Mealiver-IT-FE/actions/workflows/docker-publish.yml)
 
 ---
 

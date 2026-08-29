@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchUserCount, searchUsers as searchUsersApi } from '../../api/admin/users'
 import { tierLabel } from '../../utils/membership'
-import { hasAnyFilter } from '../../utils/userSearch'
 
 // 검색 입력이 멈추고 이 시간(ms)이 지나야 실제 API 호출 - 키 입력마다 100만 건 테이블에
 // LIKE 쿼리를 날리지 않기 위한 디바운스.
@@ -11,7 +10,9 @@ const INITIAL_FILTERS = { id: '', loginId: '', name: '' }
 
 // GET /api/admin/users/search - 이전엔 GET /api/admin/users(페이지네이션 없음)로 100만 유저
 // 전체를 내려받아 브라우저에서 필터링했는데, 그 초기 로딩 자체가 느려서(요청) 서버 검색으로 교체.
-// 필터가 하나도 없으면 아예 API를 호출하지 않는다(전체 스캔 방지, "검색 안 함" UX 유지).
+// 필터가 하나도 없어도 그대로 호출한다 - BE가 그 경우 id 순 상위 200건을 돌려주므로(가벼운 PK
+// 인덱스 스캔) 화면 진입 즉시 기본 목록이 보인다(2026-08-29: 이전엔 필터를 입력해야만 목록이
+// 뜨는 문제가 있었음).
 export default function AdminUserListPage() {
   const [userCount, setUserCount] = useState(null)
   const [filters, setFilters] = useState(INITIAL_FILTERS)
@@ -25,12 +26,6 @@ export default function AdminUserListPage() {
   }, [])
 
   useEffect(() => {
-    if (!hasAnyFilter(filters)) {
-      setMatches([])
-      setSearched(false)
-      return
-    }
-
     setSearching(true)
     const timer = setTimeout(() => {
       searchUsersApi(filters)
@@ -56,7 +51,7 @@ export default function AdminUserListPage() {
 
       {error && <p className="admin-form-error">{error}</p>}
       <p className="empty-text">
-        총 {userCount == null ? '-' : userCount.toLocaleString('ko-KR')}명 - 아래 세 칸 중 검색할 항목에만 입력하세요. (결과는 최대 200건까지 표시)
+        총 {userCount == null ? '-' : userCount.toLocaleString('ko-KR')}명 - 기본으로 ID 순 상위 200명이 표시됩니다. 좁혀 보려면 아래 세 칸 중 검색할 항목에 입력하세요. (결과는 최대 200건까지 표시)
       </p>
 
       <div className="admin-user-search-row">
